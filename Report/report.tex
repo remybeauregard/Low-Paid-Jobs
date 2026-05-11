@@ -31,7 +31,7 @@
 
 \begin{abstract}
 \noindent
-This report summarises preliminary findings from a baseline survey of 48 Ghanaian
+This report summarizes preliminary findings from a baseline survey of 48 Ghanaian
 university graduates on their wage expectations and the factors that influence their
 job-choice decisions. Regression analysis reveals that professional development is positively associated
 with both the minimum and maximum acceptable wage, while two stated social influences,
@@ -59,7 +59,7 @@ hours flexibility, professional development) influence their employment decision
 Because respondents entered wages in free text, responses arrived in diverse
 formats: monthly figures (``GHC 2,000''), hourly rates (``15 Ghana Cedis per hour''),
 daily rates, ranges (``1,500--2,000''), and even written-out words (``two thousand'').
-All entries were algorithmically standardised to a \textbf{monthly GHC equivalent}
+All entries were algorithmically standardized  to a \textbf{monthly GHC equivalent}
 using a 40-hour, five-day working week (approximately 173 hours per month and
 21.7 working days per month). Range entries were represented by their midpoint.
 
@@ -118,7 +118,7 @@ errors. The outcome is either the minimum or the maximum monthly wage WTA
 promotion prospects, professional development, and training). Two specifications
 add age and gender (female) as demographic controls.
 
-Table~\ref{tab:regs} summarises the direction and significance of notable
+Table~\ref{tab:regs} summarizes the direction and significance of notable
 coefficients. Full regression output is available in the Stata log. Four
 respondents provided a minimum but not a maximum wage, so models (3) and (4)
 use 44 observations.
@@ -200,25 +200,25 @@ inflating coefficients and distorting inference on other factors.
 \paragraph{Wage data heterogeneity.}
 The free-text wage format produced responses in at least four different time units
 (hourly, daily, monthly, ranges) and in multiple currencies and spellings. The
-algorithmic standardisation procedure handles these cases, but some uncertainty
+algorithmic standardization procedure handles these cases, but some uncertainty
 remains; for example, a respondent who wrote ``GHC 3,000 and above'' is treated
 as having stated exactly GHC 3,000. Measurement error in the outcome variable
 reduces statistical power and may affect regression estimates.
 
 %─────────────────────────────────────────────────────────────────────────────
-\section{Robustness: Winsorised Wages}
+\section{Robustness: Winsorized Wages}
 %─────────────────────────────────────────────────────────────────────────────
 
 The raw wage data include extreme values at both ends (e.g.\ a minimum WTA of GHC~18
 and a maximum of GHC~10,000 per month) that may reflect measurement or reporting
 noise rather than genuine preferences. To assess whether these
 extreme values drive the main results, we re-estimate all four regressions
-after winsorising both wage outcomes at the 5th and 95th percentiles: values
+after winsorizing both wage outcomes at the 5th and 95th percentiles: values
 below the 5th percentile are set to the 5th percentile value, and values above
 the 95th are set to the 95th. This limits the influence of outliers without
 discarding any observations.
 
-Table~\ref{tab:regsw} reports the results. The winsorisation affected 4 minimum-wage
+Table~\ref{tab:regsw} reports the results. The winsorization affected 4 minimum-wage
 observations (2 below GHC~100 and 2 above GHC~4,000) and 2 maximum-wage observations
 (below GHC~250; none exceeded the 95th percentile of GHC~10,000). All significant
 findings are robust: professional development retains its sign, direction, and

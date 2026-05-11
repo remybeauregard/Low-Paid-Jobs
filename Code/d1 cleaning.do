@@ -167,8 +167,8 @@ foreach var in wageWTAmin wageWTAmax {
     // Create a temporary working variable "_s" (capacity: 500 characters).
     // "lower()" converts all letters to lowercase ("GHC" → "ghc"),
     // "trim()" removes leading and trailing blank spaces.
-    // Standardising case and spacing prevents mismatches caused by
-    // inconsistent capitalisation in free-text responses.
+    // Standardizing case and spacing prevents mismatches caused by
+    // inconsistent capitalization in free-text responses.
 
     * Detect time unit before stripping keywords
     gen byte _isHour = regexm(_s, "hour")
@@ -261,7 +261,7 @@ drop if grad_code==3 // "I am not a graduate"
 // graduates only.
 
 replace graduationyear="2025" if graduationyear=="2025 (Expected)"
-// Standardise the text "2025 (Expected)" to a plain four-digit year so that
+// Standardize the text "2025 (Expected)" to a plain four-digit year so that
 // destring can convert it to a number.
 
 destring graduationyear, replace
@@ -399,8 +399,8 @@ file write sumf "\scriptsize" _n
 file write sumf "\item \textit{Notes:} Female, Married, and Has children are binary " ///
                "(0/1) indicators; their means equal the share of the sample with that " ///
                "characteristic. " _char(36) "p_5" _char(36) " and " ///
-               _char(36) "p_{95}" _char(36) " for wage variables are the winsorisation " ///
-               "thresholds used in Table~\ref{tab:regsw}. Wages standardised to " ///
+               _char(36) "p_{95}" _char(36) " for wage variables are the winsorization " ///
+               "thresholds used in Table~\ref{tab:regsw}. Wages standardized to " ///
                "monthly GHC equivalents using a 40-hour, 5-day working week." _n
 file write sumf "\end{tablenotes}" _n
 file write sumf "\end{threeparttable}" _n
@@ -434,7 +434,7 @@ foreach v in jobfactors_location      ///
 }
 
 
-/* ─── SECTION 10: Winsorisation ─────────────────────────────────────────────── */
+/* ─── SECTION 10: Winsorization ─────────────────────────────────────────────── */
 // Winsorisation replaces values beyond a given percentile threshold with the
 // value at that threshold, limiting (but not removing) extreme observations.
 // This is applied at the 5th and 95th percentiles to address extreme reported
@@ -451,7 +451,7 @@ foreach v in wageWTAmin_monthly wageWTAmax_monthly {
     gen double `v'_w = `v'
     replace `v'_w = `lo' if `v'_w < `lo' & !missing(`v'_w)
     replace `v'_w = `hi' if `v'_w > `hi' & !missing(`v'_w)
-    la var `v'_w "`v' winsorised at 5th/95th percentile (monthly GHC)"
+    la var `v'_w "`v' winsorized at 5th/95th percentile (monthly GHC)"
 }
 
 
@@ -565,7 +565,7 @@ forvalues s = 1/2 {
     }
     else {
         local outfile "../Report/regtable_w_table.tex"
-        local caption "OLS Regression Results: Winsorised WTA (5th/95th Percentile)"
+        local caption "OLS Regression Results: Winsorized WTA (5th/95th Percentile)"
         local tlabel  "tab:regsw"
         local m1_ m1w
         local m2_ m2w
