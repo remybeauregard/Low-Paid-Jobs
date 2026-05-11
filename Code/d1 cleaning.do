@@ -367,22 +367,18 @@ file write sumf "Age & " %5.1f (r(mean)) " & " %5.1f (r(sd)) ///
             " & " %5.0f (r(p5)) " & " %5.0f (r(p95)) ///
             " & " %5.0f (r(min)) " & " %5.0f (r(max)) " \\" _n
 
-// Binary indicators: 2 decimal places throughout
+// Binary indicators: 2 decimal places throughout; Has children is last in the
+// Demographics block so its row ends with \\[4pt] to space before Wages.
 foreach v in female married child {
     quietly summarize `v', detail
     if "`v'" == "female"  local lab "Female"
     if "`v'" == "married" local lab "Married"
     if "`v'" == "child"   local lab "Has children"
+    local row_end = cond("`v'" == "child", " \\[4pt]", " \\")
     file write sumf "`lab' & " %5.2f (r(mean)) " & " %5.2f (r(sd)) ///
                 " & " %5.2f (r(p5)) " & " %5.2f (r(p95)) ///
-                " & " %5.0f (r(min)) " & " %5.0f (r(max)) " \\" _n
+                " & " %5.0f (r(min)) " & " %5.0f (r(max)) "`row_end'" _n
 }
-
-// Graduation year: 0 decimal places for mean, 1 for SD
-quietly summarize graduationyear, detail
-file write sumf "Graduation year & " %5.0f (r(mean)) " & " %5.1f (r(sd)) ///
-            " & " %5.0f (r(p5)) " & " %5.0f (r(p95)) ///
-            " & " %5.0f (r(min)) " & " %5.0f (r(max)) " \\[4pt]" _n
 
 file write sumf "\multicolumn{7}{l}{\textit{Wages (monthly GHC)}} \\[2pt]" _n
 

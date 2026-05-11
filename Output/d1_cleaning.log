@@ -3,7 +3,7 @@
        log:  /Users/remybeauregard/Documents/GitHub/Low-Paid-Jobs/Data/../Output/d1_cleaning
 > .log
   log type:  text
- opened on:  10 May 2026, 19:25:29
+ opened on:  10 May 2026, 23:22:39
 
 . // Open a plain-text log file that records every line of Stata output for
 . // this run. "replace" overwrites the previous log; "text" saves as .log
@@ -487,24 +487,18 @@ age: all characters numeric; replaced as byte
 >             " & " %5.0f (r(min)) " & " %5.0f (r(max)) " \\" _n
 
 . 
-. // Binary indicators: 2 decimal places throughout
+. // Binary indicators: 2 decimal places throughout; Has children is last in the
+. // Demographics block so its row ends with \\[4pt] to space before Wages.
 . foreach v in female married child {
   2.     quietly summarize `v', detail
   3.     if "`v'" == "female"  local lab "Female"
   4.     if "`v'" == "married" local lab "Married"
   5.     if "`v'" == "child"   local lab "Has children"
-  6.     file write sumf "`lab' & " %5.2f (r(mean)) " & " %5.2f (r(sd)) ///
+  6.     local row_end = cond("`v'" == "child", " \\[4pt]", " \\")
+  7.     file write sumf "`lab' & " %5.2f (r(mean)) " & " %5.2f (r(sd)) ///
 >                 " & " %5.2f (r(p5)) " & " %5.2f (r(p95)) ///
->                 " & " %5.0f (r(min)) " & " %5.0f (r(max)) " \\" _n
-  7. }
-
-. 
-. // Graduation year: 0 decimal places for mean, 1 for SD
-. quietly summarize graduationyear, detail
-
-. file write sumf "Graduation year & " %5.0f (r(mean)) " & " %5.1f (r(sd)) ///
->             " & " %5.0f (r(p5)) " & " %5.0f (r(p95)) ///
->             " & " %5.0f (r(min)) " & " %5.0f (r(max)) " \\[4pt]" _n
+>                 " & " %5.0f (r(min)) " & " %5.0f (r(max)) "`row_end'" _n
+  8. }
 
 . 
 . file write sumf "\multicolumn{7}{l}{\textit{Wages (monthly GHC)}} \\[2pt]" _n
@@ -686,8 +680,8 @@ jobfactors_ |
 . /* ─── SECTION 10: Winsorisation ─────────────────────────────────────────────── */
 . // Winsorisation replaces values beyond a given percentile threshold with the
 . // value at that threshold, limiting (but not removing) extreme observations.
-. // This is applied at the 5th and 95th percentiles to address implausibly small
-. // or large reported wages that likely reflect data-entry errors.
+. // This is applied at the 5th and 95th percentiles to address extreme reported
+. // wages that may reflect measurement or reporting noise.
 . //
 . // For each wage variable, _pctile computes the 5th and 95th percentiles and
 . // stores them in r(r1) and r(r2). Values outside these bounds are capped.
@@ -1170,5 +1164,5 @@ jobfactors_qualifications |   108.8852   928.9297     0.12   0.907    -1781.037 
        log:  /Users/remybeauregard/Documents/GitHub/Low-Paid-Jobs/Data/../Output/d1_cleaning
 > .log
   log type:  text
- closed on:  10 May 2026, 19:25:29
+ closed on:  10 May 2026, 23:22:39
 --------------------------------------------------------------------------------------------
