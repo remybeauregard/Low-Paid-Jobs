@@ -1,5 +1,6 @@
 \begin{table}[h!]
 \centering
+\begin{threeparttable}
 \caption{Summary of OLS Regression Results}
 \label{tab:regs}
 \begin{tabular}{l*{4}{>{\centering\arraybackslash}p{1.6cm}}}
@@ -22,8 +23,10 @@ Training & ns & ns & ns & ns \\
 Controls (age, female) & & \checkmark & & \checkmark \\
 $N$ & 48 & 48 & 44 & 44 \\
 \bottomrule
-\multicolumn{5}{l}{\footnotesize \textit{Note:} $+$ / $-$ indicates direction; ns = not significant.}\\
-\multicolumn{5}{l}{\footnotesize *** $p$<0.01, ** $p$<0.05 (robust standard errors).}\\
-\multicolumn{5}{l}{\footnotesize Salary excluded from all models (see Section~\ref{sec:notes}).}\\
 \end{tabular}
+\begin{tablenotes}[flushleft]
+\footnotesize
+\item \textit{Note:} $+$ / $-$ indicates coefficient direction; ns = not significant. *** $p$<0.01, ** $p$<0.05 (robust standard errors). Salary excluded from all models (see Section~\ref{sec:notes}).
+\end{tablenotes}
+\end{threeparttable}
 \end{table}

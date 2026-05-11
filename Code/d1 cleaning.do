@@ -441,8 +441,8 @@ foreach v in jobfactors_location      ///
 /* ─── SECTION 10: Winsorisation ─────────────────────────────────────────────── */
 // Winsorisation replaces values beyond a given percentile threshold with the
 // value at that threshold, limiting (but not removing) extreme observations.
-// This is applied at the 5th and 95th percentiles to address implausibly small
-// or large reported wages that likely reflect data-entry errors.
+// This is applied at the 5th and 95th percentiles to address extreme reported
+// wages that may reflect measurement or reporting noise.
 //
 // For each wage variable, _pctile computes the 5th and 95th percentiles and
 // stores them in r(r1) and r(r2). Values outside these bounds are capped.
@@ -569,7 +569,7 @@ forvalues s = 1/2 {
     }
     else {
         local outfile "../Report/regtable_w_table.tex"
-        local caption "OLS Regression Results: Winsorised Wages (5th/95th Percentile)"
+        local caption "OLS Regression Results: Winsorised WTA (5th/95th Percentile)"
         local tlabel  "tab:regsw"
         local m1_ m1w
         local m2_ m2w
@@ -617,6 +617,7 @@ forvalues s = 1/2 {
     file open tf using "`outfile'", write replace
     file write tf "\begin{table}[h!]" _n
     file write tf "\centering" _n
+    file write tf "\begin{threeparttable}" _n
     file write tf "\caption{`caption'}" _n
     file write tf "\label{`tlabel'}" _n
     file write tf "\begin{tabular}{l*{4}{>{\centering\arraybackslash}p{1.6cm}}}" _n
@@ -681,10 +682,16 @@ forvalues s = 1/2 {
     file write tf "Controls (age, female) & & \checkmark & & \checkmark \\" _n
     file write tf _char(36) "N" _char(36) " & `N_1' & `N_2' & `N_3' & `N_4' \\" _n
     file write tf "\bottomrule" _n
-    file write tf "\multicolumn{5}{l}{\footnotesize \textit{Note:} " _char(36) "+" _char(36) " / " _char(36) "-" _char(36) " indicates direction; ns = not significant.}\\" _n
-    file write tf "\multicolumn{5}{l}{\footnotesize *** " _char(36) "p" _char(36) "<0.01, ** " _char(36) "p" _char(36) "<0.05 (robust standard errors).}\\" _n
-    file write tf "\multicolumn{5}{l}{\footnotesize Salary excluded from all models (see Section~\ref{sec:notes}).}\\" _n
     file write tf "\end{tabular}" _n
+    file write tf "\begin{tablenotes}[flushleft]" _n
+    file write tf "\footnotesize" _n
+    file write tf "\item \textit{Note:} " _char(36) "+" _char(36) " / " ///
+                  _char(36) "-" _char(36) " indicates coefficient direction; ns = not significant. *** " ///
+                  _char(36) "p" _char(36) "<0.01, ** " _char(36) "p" _char(36) ///
+                  "<0.05 (robust standard errors). Salary excluded from all models" ///
+                  " (see Section~\ref{sec:notes})." _n
+    file write tf "\end{tablenotes}" _n
+    file write tf "\end{threeparttable}" _n
     file write tf "\end{table}" _n
     file close tf
 

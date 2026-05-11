@@ -33,10 +33,11 @@
 \noindent
 This report summarises preliminary findings from a baseline survey of 48 Ghanaian
 university graduates on their wage expectations and the factors that influence their
-job-choice decisions. Regression analysis reveals that two stated social influences, family and peer opinion,
-are associated with systematic differences in maximum acceptable wages, while
-professional development is associated with a higher minimum acceptable wage. These are exploratory patterns intended to inform
-the design of a pilot RCT.
+job-choice decisions. Regression analysis reveals that professional development is positively associated
+with both the minimum and maximum acceptable wage, while two stated social influences,
+family and peer opinion, are associated only with the maximum: family opinion is
+associated with a lower ceiling wage and peer opinion with a higher one. These are
+exploratory patterns intended to inform the design of a pilot RCT.
 \end{abstract}
 
 \vspace{1em}
@@ -155,8 +156,8 @@ acceptable wage ($n = 44$):
     maximum WTA ($p = 0.001$ in both specifications). Respondents who report
     that family opinion matters in their job choice name a lower ceiling wage.
     One interpretation is that family networks may channel graduates toward
-    sectors where salaries are typically modest, or may exert normative
-    pressure against appearing overly ambitious.
+    sectors where salaries are typically modest, or may reflect conservative
+    reference points for expected pay in the local graduate labour market.
 
     \item \textbf{Peer opinion} is associated with a significantly \emph{higher}
     maximum WTA ($p = 0.005$ without controls; $p = 0.026$ with controls).
@@ -208,24 +209,26 @@ reduces statistical power and may affect regression estimates.
 \section{Robustness: Winsorised Wages}
 %─────────────────────────────────────────────────────────────────────────────
 
-The raw wage data include implausibly small and large values (e.g.\ a minimum
-WTA of GHC~18/month and a maximum WTA of GHC~10,000/month) that likely reflect
-measurement or reporting noise rather than genuine preferences. To assess whether these
+The raw wage data include extreme values at both ends (e.g.\ a minimum WTA of GHC~18
+and a maximum of GHC~10,000 per month) that may reflect measurement or reporting
+noise rather than genuine preferences. To assess whether these
 extreme values drive the main results, we re-estimate all four regressions
 after winsorising both wage outcomes at the 5th and 95th percentiles: values
 below the 5th percentile are set to the 5th percentile value, and values above
 the 95th are set to the 95th. This limits the influence of outliers without
 discarding any observations.
 
-Table~\ref{tab:regsw} reports the results. The winsorisation affected 2 minimum-wage
-and 2 maximum-wage observations (those below GHC~100 and above GHC~4,000 for the minimum,
-and below GHC~250 for the maximum). All main findings are robust: professional
-development remains significant and positive for both the minimum ($p = 0.026$; $p = 0.035$
-with controls) and maximum WTA ($p = 0.009$; $p = 0.006$), family opinion remains
-negatively associated with the maximum WTA at the 1\% level, and peer opinion remains
-positive and significant ($p = 0.005$ without controls; $p = 0.027$ with controls).
-The direction, magnitude, and significance of every coefficient are effectively unchanged,
-suggesting the original results are not driven by extreme wage reports.
+Table~\ref{tab:regsw} reports the results. The winsorisation affected 4 minimum-wage
+observations (2 below GHC~100 and 2 above GHC~4,000) and 2 maximum-wage observations
+(below GHC~250; none exceeded the 95th percentile of GHC~10,000). All significant
+findings are robust: professional development retains its sign, direction, and
+significance for both the minimum ($p = 0.026$; $p = 0.035$ with controls) and maximum
+WTA ($p = 0.009$; $p = 0.006$), family opinion remains negatively associated with the
+maximum WTA at the 1\% level, and peer opinion remains positive and significant
+($p = 0.005$ without controls; $p = 0.027$ with controls). Point estimates for
+non-significant minimum-WTA predictors shift more (notably training, which roughly
+halves, and hours flexibility, which moves near zero), though none cross a significance
+threshold, suggesting those estimates are sensitive to a small number of extreme values.
 
 \input{regtable_w_table.tex}
 
