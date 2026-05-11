@@ -1,0 +1,1169 @@
+--------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  /Users/remybeauregard/Documents/GitHub/Low-Paid-Jobs/Data/../Output/d1_cleaning
+> .log
+  log type:  text
+ opened on:  10 May 2026, 17:08:25
+
+. // Open a plain-text log file that records every line of Stata output for
+. // this run. "replace" overwrites the previous log; "text" saves as .log
+. // (not binary .smcl). After running this script, check this file to verify
+. // any numbers that appear in the report before reporting them.
+. 
+. import excel "Coding -General - Cega Project.xlsx", sheet("Original data-kobocollect") cle
+> ar
+(134 vars, 54 obs)
+
+. // Load data from the specified Excel workbook, reading the worksheet named
+. // "Original data-kobocollect". The "clear" option discards whatever is
+. // currently in memory before importing.
+. // After import, each Excel column becomes a Stata variable. Because the first
+. // spreadsheet row holds column headers rather than data, Stata cannot use
+. // those headers as variable names directly and instead assigns generic letter
+. // names: A, B, C, D, … (one letter per column).
+. 
+. 
+. /* ─── SECTION 2: Drop uninformative columns and the duplicate header row ─────── */
+. 
+. drop A B D E F
+
+. // Remove columns A, B, D, E, F — these held spreadsheet metadata or
+. // submission identifiers (e.g. timestamps, form IDs) not needed for analysis.
+. 
+. drop in 1
+(1 observation deleted)
+
+. // "drop in 1" removes the very first observation (row 1 of the data).
+. // When Stata imported the Excel file the original header row became the first
+. // data row, filled with question-text labels rather than real values.
+. // Deleting it leaves only genuine respondent data.
+. 
+. 
+. /* ─── SECTION 3: Rename variables from Excel column letters to meaningful names ─ */
+. // The generic letter names (C, G, H, …) are replaced with short, descriptive
+. // names that reflect each survey question's content.
+. // "la var" attaches a longer human-readable label that appears in output tables.
+. 
+. rename C graduate
+
+. la var graduate "Which of the following best describes you?"
+
+. // Records the respondent's qualification status (e.g. recent graduate,
+. // current student, etc.).
+. 
+. rename G seekingwork
+
+. la var seekingwork "Are you are looking for work in your field or not?"
+
+. 
+. rename H wageWTAmin
+
+. la var wageWTAmin "What is the minimum wage you will be willing to take?"
+
+. // WTA = "Willingness To Accept". This is the respondent's reservation wage
+. // floor: the lowest monthly pay they would accept before turning a job down.
+. 
+. rename I wageWTAmax
+
+. la var wageWTAmax "What is the maximum wage you will be willing to take?"
+
+. // The respondent's wage ceiling — the highest pay they consider appropriate
+. // (above which they may feel over-qualified or the offer implausible).
+. 
+. rename J acceptMW
+
+. la var acceptMW "If you are offered a minimum wage for a job offer will take it?"
+
+. 
+. rename M fieldofstudy
+
+. rename N graduationyear
+
+. rename P age
+
+. rename Q gender
+
+. rename R maritalstatus
+
+. rename S livingarrangement
+
+. rename T children
+
+. rename U nationalserviceDATE  // Date national service was completed
+
+.                                // (compulsory in Ghana before formal employment)
+. rename V nationalservicePAY   // Monthly stipend received during national service
+
+. 
+. // ── Job-factor variables ────────────────────────────────────────────────────
+. // Each variable below corresponds to a survey item asking whether that factor
+. // influences the respondent's job-choice decision.
+. // Typical coding: 1 = this factor matters to me, 0 = it does not.
+. 
+. rename Z  jobfactors_salary
+
+. rename AA jobfactors_location
+
+. rename AB jobfactors_familyopinion   // Does family opinion influence job choice?
+
+. rename AC jobfactors_peeropinion     // Does peer/friend opinion influence job choice?
+
+. rename AD jobfactors_hoursflexibility
+
+. rename AE jobfactors_qualifications  // Match between the job and own qualifications
+
+. rename AF jobfactors_promotion       // Promotion prospects
+
+. rename AG jobfactors_profdev         // Professional development opportunities
+
+. rename AH jobfactors_training        // On-the-job training
+
+. 
+. 
+. /* ─── SECTION 4: Convert job-factor variables from text to numbers ──────────── */
+. // When Excel data is imported, numeric-looking values sometimes arrive as plain
+. // text ("string variables"). Statistical commands such as regression require
+. // numeric variables. "destring" strips stray non-numeric characters and
+. // converts each variable to a proper number. "replace" overwrites the string
+. // version in place rather than creating a separate copy.
+. 
+. foreach v in jobfactors_salary jobfactors_location jobfactors_familyopinion ///
+>              jobfactors_peeropinion jobfactors_hoursflexibility              ///
+>              jobfactors_qualifications jobfactors_promotion                  ///
+>              jobfactors_profdev jobfactors_training {
+  2.     destring `v', replace
+  3.     // The loop body runs once per variable name in the list.
+.     // `v' is replaced by the current name on each iteration, so Stata executes
+.     // "destring jobfactors_salary, replace", then "destring jobfactors_location,
+.     // replace", and so on through all nine job-factor variables.
+. }
+jobfactors_salary: all characters numeric; replaced as byte
+jobfactors_location: all characters numeric; replaced as byte
+jobfactors_familyopinion: all characters numeric; replaced as byte
+jobfactors_peeropinion: all characters numeric; replaced as byte
+jobfactors_hoursflexibility: all characters numeric; replaced as byte
+jobfactors_qualifications: all characters numeric; replaced as byte
+jobfactors_promotion: all characters numeric; replaced as byte
+jobfactors_profdev: all characters numeric; replaced as byte
+jobfactors_training: all characters numeric; replaced as byte
+
+. 
+. 
+. /* ─── SECTION 5: Wage variable cleaning ────────────────────────────────────── */
+. // Problem: respondents entered wages as free text in many different formats:
+. //   "GHC 2,000/month"    "15 Ghana Cedis per hour"    "1500-2000"
+. //   "Two thousand"        "3000 GHS and above"
+. // Goal: convert every entry to a single comparable unit — monthly GHC
+. // (Ghanaian Cedis) — so wages can be used as outcome variables in regressions.
+. //
+. // Conversion constants (40-hr week, 5-day week; standard Ghanaian assumption):
+. //   Hours per month = 40 hrs/wk × 52 wks ÷ 12 months ≈ 173.33
+. //   Days  per month =  5 days/wk × 52 wks ÷ 12 months ≈ 21.67
+. 
+. local hrs_pm = 40 * 52 / 12
+
+. // "local" defines a temporary named value called hrs_pm. Writing `hrs_pm'
+. // anywhere below pastes in the computed number (173.333…).
+. 
+. local dys_pm =  5 * 52 / 12
+
+. // Days per month (21.667). Both locals persist only for the duration of this
+. // do-file run.
+. 
+. foreach var in wageWTAmin wageWTAmax {
+  2.     // Run the entire cleaning block first for wageWTAmin, then for wageWTAmax.
+. 
+.     capture confirm variable `var'
+  3.     if _rc continue
+  4.     // "capture" runs "confirm variable `var'" and suppresses any error message.
+.     // If the variable does not exist, _rc (the return/error code) is non-zero
+.     // and "continue" jumps to the next loop iteration, skipping this variable.
+.     // This is a safety guard in case a column is unexpectedly absent.
+. 
+.     * If the variable imported as numeric, convert to string first
+.     capture confirm string variable `var'
+  5.     if _rc tostring `var', replace
+  6.     // Check whether the variable is already stored as text.
+.     // If it is NOT a string (_rc ≠ 0), "tostring" converts it to text.
+.     // We need a text variable so we can inspect and manipulate each cell's
+.     // characters before extracting the number.
+. 
+.     gen str500 _s = lower(trim(`var'))
+  7.     // Create a temporary working variable "_s" (capacity: 500 characters).
+.     // "lower()" converts all letters to lowercase ("GHC" → "ghc"),
+.     // "trim()" removes leading and trailing blank spaces.
+.     // Standardising case and spacing prevents mismatches caused by
+.     // inconsistent capitalisation in free-text responses.
+. 
+.     * Detect time unit before stripping keywords
+.     gen byte _isHour = regexm(_s, "hour")
+  8.     // Creates a 0/1 indicator: 1 if the response contains the word "hour",
+.     // 0 otherwise. "regexm" performs a regular-expression search anywhere
+.     // in the text. "byte" declares a compact integer type sufficient for 0/1.
+. 
+.     gen byte _isDay  = regexm(_s, "\bday\b")
+  9.     // Same for "day". The "\b" symbols are word-boundary anchors: they ensure
+.     // "day" matches only as a whole word, not inside "sunday" or "today".
+.     // We capture time-unit flags BEFORE stripping unit words so we retain
+.     // the information needed to apply the correct conversion multiplier.
+. 
+.     * Written-word numbers
+.     replace _s = "1000" if regexm(_s, "one\s*thousand")
+ 10.     replace _s = "2000" if regexm(_s, "two\s*thousand")
+ 11.     replace _s = "3000" if regexm(_s, "three\s*thousand")
+ 12.     // "\s*" means "zero or more whitespace characters", so both
+.     // "one thousand" and "onethousand" are matched.
+. 
+.     * Strip currency labels and unit words (longest patterns first)
+.     // After this loop, only the bare number (or range) should remain in _s.
+.     // Patterns are listed longest-first to prevent partial matches:
+.     // e.g. "ghana cedis" must be removed before "cedi" so we do not leave
+.     // a stray "s" after stripping "cedi" from "ghana cedis".
+.     foreach p in "ghana cedis" "ghana cedi" "gh cedis" "gh cedi" ///
+>                  "ghc" "ghs" "cedis" "cedi" "gh"                  ///
+>                  "per hour" "per day" "per month"                  ///
+>                  "/month" "/hour" "/day"                           ///
+>                  "and above" "above"                               ///
+>                  "month" "hour" "day" {
+ 13.         replace _s = subinstr(_s, `"`p'"', "", .)
+ 14.         // subinstr(original, find, replace_with, max_replacements)
+.         // "." as the last argument means "replace all occurrences".
+.         // The outer `"…"' quoting lets us embed literal double-quote characters
+.         // inside a Stata string.
+.     }
+ 15. 
+.     * Remove thousand-separator commas and tidy whitespace
+.     replace _s = subinstr(_s, ",", "", .)
+ 16.     // e.g. "1,500" → "1500"
+. 
+.     replace _s = strtrim(itrim(_s))
+ 17.     // "itrim" collapses internal runs of multiple spaces to one;
+.     // "strtrim" removes any remaining leading or trailing spaces.
+. 
+.     * Handle ranges (e.g. "1500-2000"): take midpoint
+.     // Some respondents entered a range. We represent this as the average of
+.     // the two endpoints.
+.     gen double _lo = real(substr(_s, 1, strpos(_s, "-") - 1)) if strpos(_s, "-") > 1
+ 18.     gen double _hi = real(substr(_s, strpos(_s, "-") + 1, .))  if strpos(_s, "-") > 1
+ 19.     // "strpos(_s, "-")" returns the character position of the first hyphen.
+.     //   If > 1, a range was entered (a leading minus sign would sit at position 1).
+.     // "substr(text, start, length)" extracts a substring; "." as length means
+.     //   "to the end of the string".
+.     // "real()" converts the extracted text to a number.
+. 
+.     * Parse and convert to monthly
+.     gen double `var'_monthly = real(_s)
+ 20.     // Attempt to read the cleaned text as a plain number. Entries that still
+.     // contain non-numeric characters (or are blank) become missing (.).
+. 
+.     replace `var'_monthly = (_lo + _hi) / 2 if !missing(_lo)
+ 21.     // For range entries, overwrite the parsed value with the midpoint.
+. 
+.     replace `var'_monthly = `var'_monthly * `hrs_pm' if _isHour
+ 22.     // If the respondent stated an hourly wage, multiply by hours per month.
+. 
+.     replace `var'_monthly = `var'_monthly * `dys_pm' if _isDay
+ 23.     // If the respondent stated a daily wage, multiply by days per month.
+. 
+.     la var `var'_monthly "Monthly GHC equivalent of `var'"
+ 24. 
+.     drop _s _isHour _isDay _lo _hi
+ 25.     // Remove all temporary working variables before the next loop iteration.
+. }
+(1 missing value generated)
+(0 real changes made)
+(1 real change made)
+(0 real changes made)
+(2 real changes made)
+(0 real changes made)
+(1 real change made)
+(0 real changes made)
+(9 real changes made)
+(4 real changes made)
+(3 real changes made)
+(0 real changes made)
+(2 real changes made)
+(1 real change made)
+(2 real changes made)
+(2 real changes made)
+(1 real change made)
+(0 real changes made)
+(0 real changes made)
+(1 real change made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(8 real changes made)
+(17 real changes made)
+(52 missing values generated)
+(52 missing values generated)
+(2 missing values generated)
+(1 real change made)
+(1 real change made)
+(2 real changes made)
+(2 missing values generated)
+(0 real changes made)
+(0 real changes made)
+(1 real change made)
+(1 real change made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(7 real changes made)
+(2 real changes made)
+(2 real changes made)
+(0 real changes made)
+(2 real changes made)
+(1 real change made)
+(2 real changes made)
+(2 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(2 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(4 real changes made)
+(13 real changes made)
+(51 missing values generated)
+(51 missing values generated)
+(7 missing values generated)
+(2 real changes made)
+(1 real change made)
+(2 real changes made)
+
+. 
+. 
+. /* ─── SECTION 6: Categorical variable cleaning ──────────────────────────────── */
+. 
+. encode graduate, g(grad_code)
+
+. // "encode" creates a new numeric variable (grad_code) where each unique text
+. // value of "graduate" is assigned a consecutive integer (1, 2, 3, …).
+. // Stata stores the original text as a "value label" so output still shows text,
+. // but the variable is numeric — required for use in regressions.
+. 
+. drop if grad_code==3 // "I am not a graduate"
+(1 observation deleted)
+
+. // Remove observations whose graduation-status category is coded 3.
+. // Category 3 corresponds to non-graduates; the analysis targets university
+. // graduates only.
+. 
+. replace graduationyear="2025" if graduationyear=="2025 (Expected)"
+(0 real changes made)
+
+. // Standardise the text "2025 (Expected)" to a plain four-digit year so that
+. // destring can convert it to a number.
+. 
+. destring graduationyear, replace
+graduationyear: all characters numeric; replaced as int
+(3 missing values generated)
+
+. destring age, replace
+age: all characters numeric; replaced as byte
+
+. // Convert graduation year and age from text strings to numeric values
+. // so they can be used as controls in regression models.
+. 
+. g female = gender=="Female"
+
+. // Create a binary indicator: 1 for female respondents, 0 for all others.
+. // The expression (gender=="Female") evaluates to 1 (true) or 0 (false)
+. // for each observation.
+. 
+. g married = maritalstatus=="Married"
+
+. // Binary indicator: 1 = currently married, 0 = single / divorced / other.
+. 
+. g child=children=="Yes"
+
+. // Binary indicator: 1 = has at least one child, 0 = does not.
+. 
+. encode livingarrangement,g(living_code)
+
+. // Convert living-arrangement text to a labelled numeric variable,
+. // using the same approach as "encode graduate" above.
+. 
+. 
+. /* ─── SECTION 7: Keep only variables needed for analysis ────────────────────── */
+. // "keep" discards every variable NOT listed here. This removes raw/uncleaned
+. // duplicates and any columns that were never renamed, leaving a tidy dataset.
+. 
+. keep graduate seekingwork acceptMW fieldofstudy graduationyear age           ///
+>      nationalserviceDATE nationalservicePAY                                  ///
+>      gender maritalstatus livingarrangement children                         ///
+>      wageWTAmin wageWTAmax                                                   ///
+>      wageWTAmin_monthly wageWTAmax_monthly                                   ///
+>      jobfactors_location jobfactors_familyopinion                            ///
+>      jobfactors_peeropinion jobfactors_hoursflexibility                      ///
+>      jobfactors_qualifications jobfactors_promotion jobfactors_profdev       ///
+>      jobfactors_training                                                      ///
+>      grad_code female married child living_code // jobfactors_salary
+
+. // Note: jobfactors_salary is commented out and therefore NOT retained.
+. // It is excluded from the analysis — likely because salary is mechanically
+. // related to the wage outcome variables, which would introduce circularity.
+. 
+. 
+. /* ─── SECTION 8: Drop observations with insufficient data ────────────────────── */
+. 
+. drop if (missing(wageWTAmin_monthly) & missing(wageWTAmax_monthly)) | ///
+>         missing(age, graduationyear, grad_code,     ///
+>                 jobfactors_location, jobfactors_familyopinion,         ///
+>                 jobfactors_peeropinion, jobfactors_hoursflexibility,   ///
+>                 jobfactors_qualifications, jobfactors_promotion,       ///
+>                 jobfactors_profdev, jobfactors_training)
+(4 observations deleted)
+
+. // Remove any respondent that meets either condition:
+. //   (a) Has no valid monthly wage for BOTH the minimum AND maximum
+. //       (i.e. both wageWTAmin_monthly and wageWTAmax_monthly are missing), OR
+. //   (b) Is missing any core demographic or job-factor variable needed for
+. //       regression.
+. // "|" means OR; "&" means AND. "missing(x, y, z)" returns true if ANY of
+. // x, y, or z is missing. After this step the dataset contains 48 observations.
+. 
+. 
+. /* ─── SECTION 9: Descriptive tabulations ────────────────────────────────────── */
+. 
+. // ── 9a. Summary statistics for demographic and wage variables ─────────────────
+. // This block computes summary statistics and writes them directly into
+. // "../Report/sumstats_table.tex", which is \input into the report's Table 1.
+. // Re-run this script whenever the data change to keep the table current.
+. //
+. // "file open" opens a file for writing; "write replace" overwrites any
+. // existing file. "file write" sends text to the file. "quietly" suppresses
+. // Stata's screen output. "summarize" computes summary statistics; results
+. // are stored in r(mean), r(sd), r(min), r(max).
+. 
+. // Stata writes a complete \begin{table}...\end{table} block to sumstats_table.tex.
+. // In report.tex, this is \input at document level (not inside a tabular), which
+. // avoids LaTeX's restriction on \multicolumn inside \input'd files.
+. 
+. // sumstats_table.tex uses tabular*{\linewidth} so the table fills text width
+. // and the minipage note below matches width automatically. No extra packages needed.
+. // Columns: Mean | SD | p5 | p95 | Min | Max  (7 cols total including label).
+. // p5 and p95 for wage variables are the winsorisation thresholds; summarize,
+. // detail provides all percentiles in r(p5) and r(p95).
+. 
+. // _char(36) is the ASCII dollar sign ($). Using _char(36) directly in file write
+. // prevents Stata from treating $ as a global-macro prefix (e.g. $n → obs count).
+. 
+. file open sumf using "../Report/sumstats_table.tex", write replace
+
+. 
+. file write sumf "\begin{table}[h!]" _n
+
+. file write sumf "\centering" _n
+
+. file write sumf "\begin{threeparttable}" _n
+
+. file write sumf "\caption{Summary Statistics (" _char(36) "n = 48" _char(36) ")}" _n
+
+. file write sumf "\label{tab:sumstats}" _n
+
+. file write sumf "\begin{tabular}{lcccccc}" _n
+
+. file write sumf "\toprule" _n
+
+. file write sumf "\textbf{Variable} & \textbf{Mean} & \textbf{SD} & " ///
+>                _char(36) "p_{5}" _char(36) " & " _char(36) "p_{95}" _char(36) ///
+>                " & \textbf{Min} & \textbf{Max} \\" _n
+
+. file write sumf "\midrule" _n
+
+. file write sumf "\multicolumn{7}{l}{\textit{Demographics}} \\[2pt]" _n
+
+. 
+. // Age: 1 decimal for mean/SD, whole years for percentiles/min/max
+. quietly summarize age, detail
+
+. file write sumf "Age & " %5.1f (r(mean)) " & " %5.1f (r(sd)) ///
+>             " & " %5.0f (r(p5)) " & " %5.0f (r(p95)) ///
+>             " & " %5.0f (r(min)) " & " %5.0f (r(max)) " \\" _n
+
+. 
+. // Binary indicators: 2 decimal places throughout
+. foreach v in female married child {
+  2.     quietly summarize `v', detail
+  3.     if "`v'" == "female"  local lab "Female"
+  4.     if "`v'" == "married" local lab "Married"
+  5.     if "`v'" == "child"   local lab "Has children"
+  6.     file write sumf "`lab' & " %5.2f (r(mean)) " & " %5.2f (r(sd)) ///
+>                 " & " %5.2f (r(p5)) " & " %5.2f (r(p95)) ///
+>                 " & " %5.0f (r(min)) " & " %5.0f (r(max)) " \\" _n
+  7. }
+
+. 
+. // Graduation year: 0 decimal places for mean, 1 for SD
+. quietly summarize graduationyear, detail
+
+. file write sumf "Graduation year & " %5.0f (r(mean)) " & " %5.1f (r(sd)) ///
+>             " & " %5.0f (r(p5)) " & " %5.0f (r(p95)) ///
+>             " & " %5.0f (r(min)) " & " %5.0f (r(max)) " \\[4pt]" _n
+
+. 
+. file write sumf "\multicolumn{7}{l}{\textit{Wages (monthly GHC)}} \\[2pt]" _n
+
+. 
+. // Wages: 0 decimal places; p5 and p95 are the winsorisation bounds
+. foreach v in wageWTAmin_monthly wageWTAmax_monthly {
+  2.     quietly summarize `v', detail
+  3.     if "`v'" == "wageWTAmin_monthly" local lab "Minimum WTA"
+  4.     if "`v'" == "wageWTAmax_monthly" local lab "Maximum WTA"
+  5.     file write sumf "`lab' & " %6.0f (r(mean)) " & " %6.0f (r(sd)) ///
+>                 " & " %6.0f (r(p5)) " & " %6.0f (r(p95)) ///
+>                 " & " %6.0f (r(min)) " & " %6.0f (r(max)) " \\" _n
+  6. }
+
+. 
+. file write sumf "\bottomrule" _n
+
+. file write sumf "\end{tabular}" _n
+
+. file write sumf "\begin{tablenotes}[flushleft]" _n
+
+. file write sumf "\scriptsize" _n
+
+. file write sumf "\item \textit{Notes:} Female, Married, and Has children are binary " ///
+>                "(0/1) indicators; their means equal the share of the sample with that " //
+> /
+>                "characteristic. " _char(36) "p_5" _char(36) " and " ///
+>                _char(36) "p_{95}" _char(36) " for wage variables are the winsorisation " /
+> //
+>                "thresholds used in Table~\ref{tab:regsw}. Wages standardised to " ///
+>                "monthly GHC equivalents using a 40-hour, 5-day working week." _n
+
+. file write sumf "\end{tablenotes}" _n
+
+. file write sumf "\end{threeparttable}" _n
+
+. file write sumf "\end{table}" _n
+
+. 
+. file close sumf
+
+. 
+. // Additional descriptive tabs (for reference; not written to the report)
+. tab seekingwork       // Share actively seeking work in their field.
+
+   Are you are looking for work in your |
+                          field or not? |      Freq.     Percent        Cum.
+----------------------------------------+-----------------------------------
+                                   Both |         38       79.17       79.17
+                            In my field |          8       16.67       95.83
+                       Outside my field |          2        4.17      100.00
+----------------------------------------+-----------------------------------
+                                  Total |         48      100.00
+
+. tab acceptMW          // Share willing to accept the minimum wage if offered.
+
+If you are offered a minimum wage for a |
+                job offer will take it? |      Freq.     Percent        Cum.
+----------------------------------------+-----------------------------------
+                                     No |          3        6.38        6.38
+                                    Yes |         44       93.62      100.00
+----------------------------------------+-----------------------------------
+                                  Total |         47      100.00
+
+. tab livingarrangement // Distribution of living arrangements.
+
+                      livingarrangement |      Freq.     Percent        Cum.
+----------------------------------------+-----------------------------------
+                           I live alone |         15       31.25       31.25
+I live with my family (but not my par.. |          8       16.67       47.92
+                 I live with my parents |         20       41.67       89.58
+       I live with my spouse or partner |          3        6.25       95.83
+          I live with roommates/friends |          2        4.17      100.00
+----------------------------------------+-----------------------------------
+                                  Total |         48      100.00
+
+. tab fieldofstudy      // Distribution of fields of study.
+
+                       fieldofstudy |      Freq.     Percent        Cum.
+------------------------------------+-----------------------------------
+                         Accounting |          2        4.26        4.26
+            Business Administration |          5       10.64       14.89
+                            Finance |          2        4.26       19.15
+                          Marketing |          1        2.13       21.28
+                    Other (Specify) |         37       78.72      100.00
+------------------------------------+-----------------------------------
+                              Total |         47      100.00
+
+. 
+. // ── 9b. Job-factor prevalence ─────────────────────────────────────────────────
+. // Tabulate each job-factor indicator separately (salary excluded; see Section 7).
+. // Each tab produces a two-row frequency table showing how many respondents
+. // have the factor coded 0 (does not matter) vs. 1 (matters).
+. // The row for "1" gives the count and percentage needed for Table 2 of the report.
+. 
+. foreach v in jobfactors_location      ///
+>              jobfactors_familyopinion ///
+>              jobfactors_peeropinion   ///
+>              jobfactors_hoursflexibility ///
+>              jobfactors_qualifications ///
+>              jobfactors_promotion     ///
+>              jobfactors_profdev       ///
+>              jobfactors_training {
+  2.     tab `v'
+  3.     // Prints a frequency table for the variable named in `v'.
+.     // The loop iterates through all eight job-factor indicators in turn.
+. }
+
+jobfactors_ |
+   location |      Freq.     Percent        Cum.
+------------+-----------------------------------
+          0 |         12       25.00       25.00
+          1 |         36       75.00      100.00
+------------+-----------------------------------
+      Total |         48      100.00
+
+jobfactors_ |
+familyopini |
+         on |      Freq.     Percent        Cum.
+------------+-----------------------------------
+          0 |         42       87.50       87.50
+          1 |          6       12.50      100.00
+------------+-----------------------------------
+      Total |         48      100.00
+
+jobfactors_ |
+peeropinion |      Freq.     Percent        Cum.
+------------+-----------------------------------
+          0 |         47       97.92       97.92
+          1 |          1        2.08      100.00
+------------+-----------------------------------
+      Total |         48      100.00
+
+jobfactors_ |
+hoursflexib |
+      ility |      Freq.     Percent        Cum.
+------------+-----------------------------------
+          0 |         12       25.00       25.00
+          1 |         36       75.00      100.00
+------------+-----------------------------------
+      Total |         48      100.00
+
+jobfactors_ |
+qualificati |
+        ons |      Freq.     Percent        Cum.
+------------+-----------------------------------
+          0 |         29       60.42       60.42
+          1 |         19       39.58      100.00
+------------+-----------------------------------
+      Total |         48      100.00
+
+jobfactors_ |
+  promotion |      Freq.     Percent        Cum.
+------------+-----------------------------------
+          0 |         34       70.83       70.83
+          1 |         14       29.17      100.00
+------------+-----------------------------------
+      Total |         48      100.00
+
+jobfactors_ |
+    profdev |      Freq.     Percent        Cum.
+------------+-----------------------------------
+          0 |         11       22.92       22.92
+          1 |         37       77.08      100.00
+------------+-----------------------------------
+      Total |         48      100.00
+
+jobfactors_ |
+   training |      Freq.     Percent        Cum.
+------------+-----------------------------------
+          0 |         18       37.50       37.50
+          1 |         30       62.50      100.00
+------------+-----------------------------------
+      Total |         48      100.00
+
+. 
+. 
+. /* ─── SECTION 10: Winsorisation ─────────────────────────────────────────────── */
+. // Winsorisation replaces values beyond a given percentile threshold with the
+. // value at that threshold, limiting (but not removing) extreme observations.
+. // This is applied at the 5th and 95th percentiles to address implausibly small
+. // or large reported wages that likely reflect data-entry errors.
+. //
+. // For each wage variable, _pctile computes the 5th and 95th percentiles and
+. // stores them in r(r1) and r(r2). Values outside these bounds are capped.
+. // A new _w variable is created so the original values are preserved.
+. 
+. foreach v in wageWTAmin_monthly wageWTAmax_monthly {
+  2.     quietly _pctile `v', p(5 95)
+  3.     local lo = r(r1)
+  4.     local hi = r(r2)
+  5.     gen double `v'_w = `v'
+  6.     replace `v'_w = `lo' if `v'_w < `lo' & !missing(`v'_w)
+  7.     replace `v'_w = `hi' if `v'_w > `hi' & !missing(`v'_w)
+  8.     la var `v'_w "`v' winsorised at 5th/95th percentile (monthly GHC)"
+  9. }
+(2 real changes made)
+(2 real changes made)
+(4 missing values generated)
+(2 real changes made)
+(0 real changes made)
+
+. 
+. 
+. /* ─── SECTION 11: Regressions and report table generation ───────────────────── */
+. // Runs all regressions (original and winsorised outcomes) and auto-generates
+. // two LaTeX regression tables. Recompiling the report after re-running this
+. // script updates the tables — no manual transcription needed.
+. // Significance: * p<0.10  ** p<0.05  *** p<0.01 (robust HC1 standard errors).
+. 
+. // ── Helper: returns significance cell for one coefficient ─────────────────────
+. // Restores estimates `estname', tests `varname', and returns r(cell):
+. //   "+***" / "-**" / "ns" etc. — plain text, no dollar signs, safe for
+. //   use in file write without triggering Stata global-macro expansion.
+. 
+. capture program drop sig_cell
+
+. program define sig_cell, rclass
+  1.     args estname varname
+  2.     capture quietly estimates restore `estname'
+  3.     if _rc {
+  4.         return local cell "ns"
+  5.         exit
+  6.     }
+  7.     capture quietly test `varname'
+  8.     if _rc {
+  9.         return local cell "ns"
+ 10.         exit
+ 11.     }
+ 12.     local p = r(p)
+ 13.     local b = _b[`varname']
+ 14.     local pm = cond(`b' >= 0, "+", "-")
+ 15.     if `p' >= 0.10 {
+ 16.         return local cell "ns"
+ 17.         exit
+ 18.     }
+ 19.     local stars = cond(`p' < 0.01, "***", cond(`p' < 0.05, "**", "*"))
+ 20.     return local cell "`pm'`stars'"
+ 21. end
+
+. 
+. // ── Variable display labels ────────────────────────────────────────────────────
+. local lab_jobfactors_profdev          "Professional development"
+
+. local lab_jobfactors_familyopinion    "Family opinion"
+
+. local lab_jobfactors_peeropinion      "Peer opinion"
+
+. local lab_jobfactors_location         "Location"
+
+. local lab_jobfactors_hoursflexibility "Hours flexibility"
+
+. local lab_jobfactors_qualifications   "Qualifications match"
+
+. local lab_jobfactors_promotion        "Promotion prospects"
+
+. local lab_jobfactors_training         "Training"
+
+. 
+. local regvars "jobfactors_profdev jobfactors_familyopinion jobfactors_peeropinion jobfacto
+> rs_location jobfactors_hoursflexibility jobfactors_qualifications jobfactors_promotion job
+> factors_training"
+
+. 
+. // ── Regressions: original wages ────────────────────────────────────────────────
+. 
+. reg wageWTAmin_monthly jobfactors*, robust
+
+Linear regression                               Number of obs     =         48
+                                                F(7, 39)          =          .
+                                                Prob > F          =          .
+                                                R-squared         =     0.2256
+                                                Root MSE          =     1568.4
+
+-------------------------------------------------------------------------------------------
+                          |               Robust
+       wageWTAmin_monthly | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+--------------------------+----------------------------------------------------------------
+      jobfactors_location |  -578.6407   518.8493    -1.12   0.272    -1628.112    470.8309
+ jobfactors_familyopinion |  -923.7076   913.7593    -1.01   0.318     -2771.96     924.545
+   jobfactors_peeropinion |  -214.9979   965.9405    -0.22   0.825    -2168.797    1738.801
+jobfactors_hoursflexibi~y |  -501.4755   794.3151    -0.63   0.532     -2108.13    1105.178
+jobfactors_qualifications |   310.2708   430.0183     0.72   0.475    -559.5234    1180.065
+     jobfactors_promotion |  -294.2061   533.6104    -0.55   0.585    -1373.535    785.1228
+       jobfactors_profdev |   862.5008   385.6717     2.24   0.031     82.40609    1642.595
+      jobfactors_training |   971.2589   756.1812     1.28   0.207     -558.262     2500.78
+                    _cons |   1868.997   681.7964     2.74   0.009      489.934    3248.061
+-------------------------------------------------------------------------------------------
+
+. estimates store m1
+
+. 
+. reg wageWTAmin_monthly age female jobfactors*, robust
+
+Linear regression                               Number of obs     =         48
+                                                F(9, 37)          =          .
+                                                Prob > F          =          .
+                                                R-squared         =     0.2355
+                                                Root MSE          =     1599.9
+
+-------------------------------------------------------------------------------------------
+                          |               Robust
+       wageWTAmin_monthly | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+--------------------------+----------------------------------------------------------------
+                      age |   49.28357   56.97333     0.87   0.393    -66.15536    164.7225
+                   female |  -91.78677   368.1276    -0.25   0.804    -837.6842    654.1106
+      jobfactors_location |  -474.7789   532.3657    -0.89   0.378    -1553.454    603.8964
+ jobfactors_familyopinion |  -1119.446   921.0104    -1.22   0.232     -2985.59    746.6984
+   jobfactors_peeropinion |    168.479   1008.839     0.17   0.868    -1875.624    2212.582
+jobfactors_hoursflexibi~y |  -552.7922    812.603    -0.68   0.501    -2199.282    1093.698
+jobfactors_qualifications |   194.1104   433.5878     0.45   0.657    -684.4218    1072.643
+     jobfactors_promotion |  -160.2978   517.8707    -0.31   0.759    -1209.603    889.0078
+       jobfactors_profdev |   867.4801   409.6193     2.12   0.041     37.51249    1697.448
+      jobfactors_training |   930.2995   777.0773     1.20   0.239    -644.2086    2504.808
+                    _cons |   555.9269   1650.847     0.34   0.738    -2789.007    3900.861
+-------------------------------------------------------------------------------------------
+
+. estimates store m2
+
+. 
+. reg wageWTAmax_monthly jobfactors*, robust
+
+Linear regression                               Number of obs     =         44
+                                                F(7, 35)          =          .
+                                                Prob > F          =          .
+                                                R-squared         =     0.3179
+                                                Root MSE          =     2422.6
+
+-------------------------------------------------------------------------------------------
+                          |               Robust
+       wageWTAmax_monthly | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+--------------------------+----------------------------------------------------------------
+      jobfactors_location |   119.7426   1214.122     0.10   0.922    -2345.056    2584.541
+ jobfactors_familyopinion |  -4026.685    1156.37    -3.48   0.001    -6374.241   -1679.128
+   jobfactors_peeropinion |   3859.375   1276.437     3.02   0.005     1268.071    6450.679
+jobfactors_hoursflexibi~y |   765.1626   898.5583     0.85   0.400    -1059.008    2589.333
+jobfactors_qualifications |  -155.5874   979.7164    -0.16   0.875    -2144.518    1833.343
+     jobfactors_promotion |   -555.157   1116.205    -0.50   0.622    -2821.174     1710.86
+       jobfactors_profdev |   2174.357   787.5133     2.76   0.009     575.6203    3773.094
+      jobfactors_training |    801.864   1132.697     0.71   0.484    -1497.634    3101.362
+                    _cons |   2016.927   762.5837     2.64   0.012     468.8003    3565.055
+-------------------------------------------------------------------------------------------
+
+. // N = 44; four respondents provided a minimum but not a maximum wage.
+. estimates store m3
+
+. 
+. reg wageWTAmax_monthly age female jobfactors*, robust
+
+Linear regression                               Number of obs     =         44
+                                                F(9, 33)          =          .
+                                                Prob > F          =          .
+                                                R-squared         =     0.3955
+                                                Root MSE          =     2348.9
+
+-------------------------------------------------------------------------------------------
+                          |               Robust
+       wageWTAmax_monthly | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+--------------------------+----------------------------------------------------------------
+                      age |  -269.3818   128.7089    -2.09   0.044     -531.242   -7.521549
+                   female |  -636.2595   726.7041    -0.88   0.388     -2114.75    842.2312
+      jobfactors_location |  -166.5858   1135.847    -0.15   0.884    -2477.484    2144.312
+ jobfactors_familyopinion |  -3854.541   1106.308    -3.48   0.001    -6105.342    -1603.74
+   jobfactors_peeropinion |   3212.553   1373.569     2.34   0.026     418.0055      6007.1
+jobfactors_hoursflexibi~y |   1057.848   1070.952     0.99   0.330     -1121.02    3236.717
+jobfactors_qualifications |   91.25123   932.6568     0.10   0.923    -1806.253    1988.756
+     jobfactors_promotion |  -881.5632   999.2999    -0.88   0.384    -2914.654    1151.528
+       jobfactors_profdev |   2445.265   837.4186     2.92   0.006     741.5245    4149.006
+      jobfactors_training |   881.6213    1166.99     0.76   0.455    -1492.637     3255.88
+                    _cons |   9315.573    3391.51     2.75   0.010     2415.494    16215.65
+-------------------------------------------------------------------------------------------
+
+. estimates store m4
+
+. 
+. // ── Regressions: winsorised wages ──────────────────────────────────────────────
+. 
+. reg wageWTAmin_monthly_w jobfactors*, robust
+
+Linear regression                               Number of obs     =         48
+                                                F(7, 39)          =          .
+                                                Prob > F          =          .
+                                                R-squared         =     0.2415
+                                                Root MSE          =     1075.4
+
+-------------------------------------------------------------------------------------------
+                          |               Robust
+     wageWTAmin_monthly_w | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+--------------------------+----------------------------------------------------------------
+      jobfactors_location |  -320.5342   439.7953    -0.73   0.470    -1210.104    569.0356
+ jobfactors_familyopinion |  -637.0179   822.3443    -0.77   0.443    -2300.366     1026.33
+   jobfactors_peeropinion |  -380.2686   862.9138    -0.44   0.662    -2125.676    1365.139
+jobfactors_hoursflexibi~y |   19.44404   477.4953     0.04   0.968    -946.3814    985.2695
+jobfactors_qualifications |   306.2032   386.5378     0.79   0.433    -475.6434     1088.05
+     jobfactors_promotion |  -214.3046   448.0451    -0.48   0.635    -1120.561    691.9522
+       jobfactors_profdev |   827.8006   357.0487     2.32   0.026     105.6015        1550
+      jobfactors_training |   482.3397   471.0884     1.02   0.312    -470.5266    1435.206
+                    _cons |   1416.338   372.0821     3.81   0.000     663.7308    2168.945
+-------------------------------------------------------------------------------------------
+
+. estimates store m1w
+
+. 
+. reg wageWTAmin_monthly_w age female jobfactors*, robust
+
+Linear regression                               Number of obs     =         48
+                                                F(9, 37)          =          .
+                                                Prob > F          =          .
+                                                R-squared         =     0.2574
+                                                Root MSE          =     1092.5
+
+-------------------------------------------------------------------------------------------
+                          |               Robust
+     wageWTAmin_monthly_w | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+--------------------------+----------------------------------------------------------------
+                      age |   40.86067   53.23665     0.77   0.448    -67.00703    148.7284
+                   female |  -117.1556   315.9987    -0.37   0.713    -757.4299    523.1187
+      jobfactors_location |  -232.0734   470.1125    -0.49   0.624    -1184.612    720.4649
+ jobfactors_familyopinion |  -798.7429   785.4448    -1.02   0.316    -2390.205    792.7194
+   jobfactors_peeropinion |  -43.45078   832.0429    -0.05   0.959     -1729.33    1642.428
+jobfactors_hoursflexibi~y |  -13.84075   497.1267    -0.03   0.978    -1021.115    993.4337
+jobfactors_qualifications |   207.9457   380.7159     0.55   0.588    -563.4579    979.3494
+     jobfactors_promotion |  -94.18024   445.2107    -0.21   0.834    -996.2628    807.9023
+       jobfactors_profdev |   837.9602    383.697     2.18   0.035     60.51637    1615.404
+      jobfactors_training |   440.7243   494.6105     0.89   0.379    -561.4518      1442.9
+                    _cons |   332.1573   1541.615     0.22   0.831    -2791.452    3455.766
+-------------------------------------------------------------------------------------------
+
+. estimates store m2w
+
+. 
+. reg wageWTAmax_monthly_w jobfactors*, robust
+
+Linear regression                               Number of obs     =         44
+                                                F(7, 35)          =          .
+                                                Prob > F          =          .
+                                                R-squared         =     0.3140
+                                                Root MSE          =     2415.7
+
+-------------------------------------------------------------------------------------------
+                          |               Robust
+     wageWTAmax_monthly_w | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+--------------------------+----------------------------------------------------------------
+      jobfactors_location |   137.5558   1210.995     0.11   0.910    -2320.894    2596.005
+ jobfactors_familyopinion |  -3977.833   1147.286    -3.47   0.001    -6306.948   -1648.718
+   jobfactors_peeropinion |   3809.061   1269.423     3.00   0.005     1231.996    6386.126
+jobfactors_hoursflexibi~y |   711.7716   885.2905     0.80   0.427    -1085.464    2509.007
+jobfactors_qualifications |  -139.1997   976.5745    -0.14   0.887    -2121.751    1843.352
+     jobfactors_promotion |  -570.6077   1115.942    -0.51   0.612    -2836.091    1694.875
+       jobfactors_profdev |   2158.554   782.5502     2.76   0.009     569.8926    3747.215
+      jobfactors_training |   823.7322    1129.87     0.73   0.471    -1470.025    3117.489
+                    _cons |   2046.967   751.5842     2.72   0.010     521.1695    3572.764
+-------------------------------------------------------------------------------------------
+
+. estimates store m3w
+
+. 
+. reg wageWTAmax_monthly_w age female jobfactors*, robust
+
+Linear regression                               Number of obs     =         44
+                                                F(9, 33)          =          .
+                                                Prob > F          =          .
+                                                R-squared         =     0.3935
+                                                Root MSE          =     2339.1
+
+-------------------------------------------------------------------------------------------
+                          |               Robust
+     wageWTAmax_monthly_w | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+--------------------------+----------------------------------------------------------------
+                      age |  -270.9938   128.6228    -2.11   0.043    -532.6789   -9.308693
+                   female |  -645.6963   724.3728    -0.89   0.379    -2119.444    828.0513
+      jobfactors_location |  -150.0888   1131.376    -0.13   0.895    -2451.891    2151.714
+ jobfactors_familyopinion |  -3804.154   1091.171    -3.49   0.001    -6024.159   -1584.149
+   jobfactors_peeropinion |   3160.582   1363.313     2.32   0.027     386.9003    5934.263
+jobfactors_hoursflexibi~y |   1007.561   1057.915     0.95   0.348    -1144.783    3159.906
+jobfactors_qualifications |   108.8852   928.9297     0.12   0.907    -1781.037    1998.807
+     jobfactors_promotion |  -897.9807    997.299    -0.90   0.374    -2927.001    1131.039
+       jobfactors_profdev |   2431.738   832.1282     2.92   0.006     738.7603    4124.716
+      jobfactors_training |   902.9914   1162.145     0.78   0.443    -1461.411    3267.394
+                    _cons |   9390.014    3383.29     2.78   0.009      2506.66    16273.37
+-------------------------------------------------------------------------------------------
+
+. estimates store m4w
+
+. 
+. // ── Write regression tables ────────────────────────────────────────────────────
+. // Stata local macro names are limited to 32 characters. Variable names such as
+. // jobfactors_hoursflexibility (27 chars) would exceed that limit if used as part
+. // of a cell key (e.g. cell_jobfactors_hoursflexibility_m1w = 36 chars). Instead,
+. // cells are stored using numeric indices: c_i_j where i = var index (1-8) and
+. // j = model index (1-4). Maximum name length is 6 chars (e.g. c_8_4).
+. 
+. // Map numeric index to full variable name (for sig_cell and label lookups)
+. local var1 jobfactors_profdev
+
+. local var2 jobfactors_familyopinion
+
+. local var3 jobfactors_peeropinion
+
+. local var4 jobfactors_location
+
+. local var5 jobfactors_hoursflexibility
+
+. local var6 jobfactors_qualifications
+
+. local var7 jobfactors_promotion
+
+. local var8 jobfactors_training
+
+. 
+. // The forvalues loop (s=1: original wages; s=2: winsorised wages) generates
+. // regtable_table.tex and regtable_w_table.tex respectively.
+. 
+. forvalues s = 1/2 {
+  2. 
+.     // Table-specific settings
+.     if `s' == 1 {
+  3.         local outfile "../Report/regtable_table.tex"
+  4.         local caption "Summary of OLS Regression Results"
+  5.         local tlabel  "tab:regs"
+  6.         local m1_ m1
+  7.         local m2_ m2
+  8.         local m3_ m3
+  9.         local m4_ m4
+ 10.     }
+ 11.     else {
+ 12.         local outfile "../Report/regtable_w_table.tex"
+ 13.         local caption "OLS Regression Results: Winsorised Wages (5th/95th Percentile)"
+ 14.         local tlabel  "tab:regsw"
+ 15.         local m1_ m1w
+ 16.         local m2_ m2w
+ 17.         local m3_ m3w
+ 18.         local m4_ m4w
+ 19.     }
+ 20. 
+.     // Compute all 32 significance cells using numeric indices i (var) and j (model)
+.     // c_i_j stores "+***", "-**", or "ns" — all well within the 32-char name limit.
+.     forvalues i = 1/8 {
+ 21.         local v = "`var`i''"
+ 22.         forvalues j = 1/4 {
+ 23.             local mj = "`m`j'_'"
+ 24.             sig_cell `mj' `v'
+ 25.             local c_`i'_`j' = r(cell)
+ 26.         }
+ 27.     }
+ 28. 
+.     // Retrieve N for each model using the same j index
+.     forvalues j = 1/4 {
+ 29.         local mj = "`m`j'_'"
+ 30.         quietly estimates restore `mj'
+ 31.         local N_`j' = e(N)
+ 32.     }
+ 33. 
+.     // Partition variable indices into significant (any model) and non-significant
+.     local sig_idx ""
+ 34.     local nonsig_idx ""
+ 35.     forvalues i = 1/8 {
+ 36.         local any = 0
+ 37.         forvalues j = 1/4 {
+ 38.             if "`c_`i'_`j''" != "ns" {
+ 39.                 local any = 1
+ 40.             }
+ 41.         }
+ 42.         if `any' {
+ 43.             local sig_idx "`sig_idx' `i'"
+ 44.         }
+ 45.         else {
+ 46.             local nonsig_idx "`nonsig_idx' `i'"
+ 47.         }
+ 48.     }
+ 49. 
+.     // Write the complete table file
+.     file open tf using "`outfile'", write replace
+ 50.     file write tf "\begin{table}[h!]" _n
+ 51.     file write tf "\centering" _n
+ 52.     file write tf "\caption{`caption'}" _n
+ 53.     file write tf "\label{`tlabel'}" _n
+ 54.     file write tf "\begin{tabular}{l*{4}{>{\centering\arraybackslash}p{1.6cm}}}" _n
+ 55.     file write tf "\toprule" _n
+ 56.     file write tf " & \multicolumn{2}{c}{\textbf{Min WTA}} & \multicolumn{2}{c}{\textbf
+> {Max WTA}} \\" _n
+ 57.     file write tf "\cmidrule(lr){2-3}\cmidrule(lr){4-5}" _n
+ 58.     file write tf "\textbf{Job factor} & (1) & (2) & (3) & (4) \\" _n
+ 59.     file write tf "\midrule" _n
+ 60.     file write tf "\multicolumn{5}{l}{\textit{Significant predictors}} \\[2pt]" _n
+ 61. 
+.     // Write each row cell-by-cell. _char(36) writes a literal $ to produce
+.     // $+$*** / $-$*** formatting (math-mode sign + superscript stars).
+. 
+.     local n_sig : word count `sig_idx'
+ 62.     local k = 0
+ 63.     foreach i of local sig_idx {
+ 64.         local k = `k' + 1
+ 65.         local v = "`var`i''"
+ 66.         local lab "`lab_`v''"
+ 67.         file write tf "`lab'"
+ 68.         forvalues j = 1/4 {
+ 69.             file write tf " & "
+ 70.             if "`c_`i'_`j''" == "ns" {
+ 71.                 file write tf "ns"
+ 72.             }
+ 73.             else {
+ 74.                 local sg = substr("`c_`i'_`j''", 1, 1)
+ 75.                 local st = substr("`c_`i'_`j''", 2, .)
+ 76.                 file write tf _char(36) "`sg'" _char(36) "`st'"
+ 77.             }
+ 78.         }
+ 79.         if `k' == `n_sig' {
+ 80.             file write tf " \\[4pt]" _n
+ 81.         }
+ 82.         else {
+ 83.             file write tf " \\" _n
+ 84.         }
+ 85.     }
+ 86. 
+.     if "`nonsig_idx'" != "" {
+ 87.         file write tf "\multicolumn{5}{l}{\textit{Non-significant predictors}} \\[2pt]"
+>  _n
+ 88.         foreach i of local nonsig_idx {
+ 89.             local v = "`var`i''"
+ 90.             local lab "`lab_`v''"
+ 91.             file write tf "`lab'"
+ 92.             forvalues j = 1/4 {
+ 93.                 file write tf " & "
+ 94.                 if "`c_`i'_`j''" == "ns" {
+ 95.                     file write tf "ns"
+ 96.                 }
+ 97.                 else {
+ 98.                     local sg = substr("`c_`i'_`j''", 1, 1)
+ 99.                     local st = substr("`c_`i'_`j''", 2, .)
+100.                     file write tf _char(36) "`sg'" _char(36) "`st'"
+101.                 }
+102.             }
+103.             file write tf " \\" _n
+104.         }
+105.     }
+106. 
+.     file write tf "\midrule" _n
+107.     file write tf "Controls (age, female) & & \checkmark & & \checkmark \\" _n
+108.     file write tf _char(36) "N" _char(36) " & `N_1' & `N_2' & `N_3' & `N_4' \\" _n
+109.     file write tf "\bottomrule" _n
+110.     file write tf "\multicolumn{5}{l}{\footnotesize \textit{Note:} " _char(36) "+" _cha
+> r(36) " / " _char(36) "-" _char(36) " indicates direction; ns = not significant.}\\" _n
+111.     file write tf "\multicolumn{5}{l}{\footnotesize *** " _char(36) "p" _char(36) "<0.0
+> 1, ** " _char(36) "p" _char(36) "<0.05 (robust standard errors).}\\" _n
+112.     file write tf "\multicolumn{5}{l}{\footnotesize Salary excluded from all models (se
+> e Section~\ref{sec:notes}).}\\" _n
+113.     file write tf "\end{tabular}" _n
+114.     file write tf "\end{table}" _n
+115.     file close tf
+116. 
+. }
+
+. 
+. log close
+      name:  <unnamed>
+       log:  /Users/remybeauregard/Documents/GitHub/Low-Paid-Jobs/Data/../Output/d1_cleaning
+> .log
+  log type:  text
+ closed on:  10 May 2026, 17:08:25
+--------------------------------------------------------------------------------------------
