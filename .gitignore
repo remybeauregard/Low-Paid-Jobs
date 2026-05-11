@@ -1,0 +1,10 @@
+# LaTeX build artifacts
+Report/*.aux
+Report/*.fdb_latexmk
+Report/*.fls
+Report/*.log
+Report/*.out
+Report/*.synctex.gz
+
+# macOS
+.DS_Store

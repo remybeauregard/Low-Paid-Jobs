@@ -1,0 +1,29 @@
+\begin{table}[h!]
+\centering
+\caption{OLS Regression Results: Winsorised Wages (5th/95th Percentile)}
+\label{tab:regsw}
+\begin{tabular}{l*{4}{>{\centering\arraybackslash}p{1.6cm}}}
+\toprule
+ & \multicolumn{2}{c}{\textbf{Min WTA}} & \multicolumn{2}{c}{\textbf{Max WTA}} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}
+\textbf{Job factor} & (1) & (2) & (3) & (4) \\
+\midrule
+\multicolumn{5}{l}{\textit{Significant predictors}} \\[2pt]
+Professional development & $+$** & $+$** & $+$*** & $+$*** \\
+Family opinion & ns & ns & $-$*** & $-$*** \\
+Peer opinion & ns & ns & $+$*** & $+$** \\[4pt]
+\multicolumn{5}{l}{\textit{Non-significant predictors}} \\[2pt]
+Location & ns & ns & ns & ns \\
+Hours flexibility & ns & ns & ns & ns \\
+Qualifications match & ns & ns & ns & ns \\
+Promotion prospects & ns & ns & ns & ns \\
+Training & ns & ns & ns & ns \\
+\midrule
+Controls (age, female) & & \checkmark & & \checkmark \\
+$N$ & 48 & 48 & 44 & 44 \\
+\bottomrule
+\multicolumn{5}{l}{\footnotesize \textit{Note:} $+$ / $-$ indicates direction; ns = not significant.}\\
+\multicolumn{5}{l}{\footnotesize *** $p$<0.01, ** $p$<0.05 (robust standard errors).}\\
+\multicolumn{5}{l}{\footnotesize Salary excluded from all models (see Section~\ref{sec:notes}).}\\
+\end{tabular}
+\end{table}

@@ -1,0 +1,242 @@
+\documentclass[12pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{threeparttable}
+\usepackage{hyperref}
+\usepackage{setspace}
+\usepackage{parskip}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    urlcolor=blue,
+    citecolor=blue
+}
+
+\title{\textbf{Job Preferences and Wage Expectations\\Among Ghanaian University Graduates}}
+\author{Remy Beauregard}
+\date{May 2026}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+\noindent
+This report summarises preliminary findings from a baseline survey of 48 Ghanaian
+university graduates on their wage expectations and the factors that influence their
+job-choice decisions. Regression analysis reveals that two stated social influences, family and peer opinion,
+are associated with systematic differences in maximum acceptable wages, while
+professional development is associated with a higher minimum acceptable wage. These are exploratory patterns intended to inform
+the design of a pilot RCT.
+\end{abstract}
+
+\vspace{1em}
+\hrule
+\vspace{1.5em}
+
+\setstretch{1.2}
+
+%─────────────────────────────────────────────────────────────────────────────
+\section{Background and Data}
+%─────────────────────────────────────────────────────────────────────────────
+
+The survey was administered to Ghanaian university graduates through KoboCollect.
+Respondents provided their minimum and maximum willingness-to-accept (WTA) wages
+(the floor and ceiling of pay they would consider for a job offer), along with
+demographic information and a set of indicators for which factors (e.g.\ location,
+hours flexibility, professional development) influence their employment decisions.
+
+Because respondents entered wages in free text, responses arrived in diverse
+formats: monthly figures (``GHC 2,000''), hourly rates (``15 Ghana Cedis per hour''),
+daily rates, ranges (``1,500--2,000''), and even written-out words (``two thousand'').
+All entries were algorithmically standardised to a \textbf{monthly GHC equivalent}
+using a 40-hour, five-day working week (approximately 173 hours per month and
+21.7 working days per month). Range entries were represented by their midpoint.
+
+The analytical sample was constructed from the raw survey responses in two steps.
+First, respondents who were not college graduates were dropped (grad\_code $= 3$;
+$n = 1$ dropped). Second, respondents missing wage data for both the
+minimum and maximum WTA, or missing any key demographic or job-factor variable, were
+excluded ($n = 4$ dropped). The \textbf{baseline analytical sample
+contains 48 respondents}. Summary statistics for key variables are shown in
+Table~\ref{tab:sumstats}.
+
+\input{sumstats_table.tex}
+
+%─────────────────────────────────────────────────────────────────────────────
+\section{Prevalence of Job-Choice Factors}
+%─────────────────────────────────────────────────────────────────────────────
+
+Respondents were asked which factors influence their job-choice decisions.
+Table~\ref{tab:social} shows the reported prevalence of each factor.
+
+\begin{table}[h!]
+\centering
+\caption{Respondents Citing Each Factor as Influencing Job Choice ($n = 48$)}
+\label{tab:social}
+\begin{tabular}{lcc}
+\toprule
+\textbf{Factor} & \textbf{Count} & \textbf{Share} \\
+\midrule
+Professional development & 37 & 77.1\% \\
+Location                 & 36 & 75.0\% \\
+Hours flexibility        & 36 & 75.0\% \\
+Training                 & 30 & 62.5\% \\
+Qualifications match     & 19 & 39.6\% \\
+Promotion prospects      & 14 & 29.2\% \\
+Family opinion           &  6 & 12.5\% \\
+Peer opinion             &  1 &  2.1\% \\
+\bottomrule
+\multicolumn{3}{l}{\footnotesize \textit{Note:} The one respondent citing peer opinion is included among the six citing family opinion.}\\
+\end{tabular}
+\end{table}
+
+The striking rarity of stated social influence, particularly peer opinion (cited by
+only one respondent), sets up an important contrast with the regression results
+discussed in Section~\ref{sec:reg}, where both social factors emerge as statistically
+significant predictors of the \emph{maximum} acceptable wage.
+
+%─────────────────────────────────────────────────────────────────────────────
+\section{Regression Results}
+\label{sec:reg}
+%─────────────────────────────────────────────────────────────────────────────
+
+We estimate four OLS regressions, each using heteroskedasticity-robust standard
+errors. The outcome is either the minimum or the maximum monthly wage WTA
+(in GHC). Predictors are eight binary job-factor indicators
+(location, family opinion, peer opinion, hours flexibility, qualifications match,
+promotion prospects, professional development, and training). Two specifications
+add age and gender (female) as demographic controls.
+
+Table~\ref{tab:regs} summarises the direction and significance of notable
+coefficients. Full regression output is available in the Stata log. Four
+respondents provided a minimum but not a maximum wage, so models (3) and (4)
+use 44 observations.
+
+\input{regtable_table.tex}
+
+\subsection{Minimum Wage WTA}
+
+Of all job-factor indicators, \textbf{professional development} is the only
+significant predictor of a respondent's minimum acceptable wage (significant at
+the 5\% level, $p < 0.05$, in both specifications). The positive coefficient
+indicates that respondents who cite professional development as important in their
+job choice name a \emph{higher} wage floor. This is consistent with a
+self-selection story: individuals oriented toward career growth may have higher
+reservation wages, either because they feel their human capital warrants more or
+because they are willing to wait for a better match. The result is robust to
+the inclusion of age and gender as controls.
+
+No other job-factor indicator (location, hours flexibility, qualifications match,
+promotion, or training) is significantly associated with the minimum WTA.
+
+\subsection{Maximum Wage WTA}
+
+Three job-factor indicators are significantly associated with the maximum
+acceptable wage ($n = 44$):
+
+\begin{itemize}
+    \item \textbf{Professional development} is associated with a significantly
+    \emph{higher} maximum WTA in both specifications ($p = 0.009$ without
+    controls; $p = 0.006$ with controls). The coefficient is substantially
+    larger for the ceiling than for the floor, suggesting career-oriented
+    graduates set higher aspirations across the board.
+
+    \item \textbf{Family opinion} is associated with a significantly \emph{lower}
+    maximum WTA ($p = 0.001$ in both specifications). Respondents who report
+    that family opinion matters in their job choice name a lower ceiling wage.
+    One interpretation is that family networks may channel graduates toward
+    sectors where salaries are typically modest, or may exert normative
+    pressure against appearing overly ambitious.
+
+    \item \textbf{Peer opinion} is associated with a significantly \emph{higher}
+    maximum WTA ($p = 0.005$ without controls; $p = 0.026$ with controls).
+    This could reflect peer networks that set high wage norms, or social
+    comparison dynamics that raise wage aspirations.
+\end{itemize}
+
+The controlled specification (model 4) also reveals a significant negative
+association between age and maximum WTA ($p = 0.044$), suggesting older
+respondents in the sample set lower wage ceilings.
+
+%─────────────────────────────────────────────────────────────────────────────
+\section{Noteworthy Observations}
+%─────────────────────────────────────────────────────────────────────────────
+
+\paragraph{The stated--revealed disconnect.}
+The most striking pattern in the data is the mismatch between how \emph{few}
+respondents explicitly report social factors as important in their job decisions
+(1 of 48 for peer opinion; 6 of 48 for family opinion) and the statistical
+prominence of those same factors in the maximum WTA regressions, where both are
+significant at the 1\% level. This disconnect may indicate that social influences
+operate at a level respondents do not consciously attribute to their
+decision-making, an interesting hypothesis to explore in subsequent work.
+
+\paragraph{Asymmetry between social factors and professional development.}
+Social factors (family and peer opinion) are significant only for the maximum
+(ceiling) WTA, not the minimum (floor). Professional development, by contrast,
+is significant for both: it raises the floor (by roughly GHC 860--870/month)
+and raises the ceiling by a larger margin (roughly GHC 2,200--2,450/month).
+This pattern suggests that career-oriented graduates set higher wages across the
+board, while social reference points shape aspiration levels but not reservation
+prices.
+
+\paragraph{Salary excluded from regressions.}\label{sec:notes}
+The salary job-factor indicator was not included as a predictor in any regression. This is appropriate: using ``does salary matter
+to you?'' as a predictor of the actual salary you demand would introduce a form of
+circularity (it measures the same underlying construct as the outcome), potentially
+inflating coefficients and distorting inference on other factors.
+
+\paragraph{Wage data heterogeneity.}
+The free-text wage format produced responses in at least four different time units
+(hourly, daily, monthly, ranges) and in multiple currencies and spellings. The
+algorithmic standardisation procedure handles these cases, but some uncertainty
+remains; for example, a respondent who wrote ``GHC 3,000 and above'' is treated
+as having stated exactly GHC 3,000. Measurement error in the outcome variable
+reduces statistical power and may affect regression estimates.
+
+%─────────────────────────────────────────────────────────────────────────────
+\section{Robustness: Winsorised Wages}
+%─────────────────────────────────────────────────────────────────────────────
+
+The raw wage data include implausibly small and large values (e.g.\ a minimum
+WTA of GHC~18/month and a maximum WTA of GHC~10,000/month) that likely reflect
+measurement or reporting noise rather than genuine preferences. To assess whether these
+extreme values drive the main results, we re-estimate all four regressions
+after winsorising both wage outcomes at the 5th and 95th percentiles: values
+below the 5th percentile are set to the 5th percentile value, and values above
+the 95th are set to the 95th. This limits the influence of outliers without
+discarding any observations.
+
+Table~\ref{tab:regsw} reports the results. The winsorisation affected 2 minimum-wage
+and 2 maximum-wage observations (those below GHC~100 and above GHC~4,000 for the minimum,
+and below GHC~250 for the maximum). All main findings are robust: professional
+development remains significant and positive for both the minimum ($p = 0.026$; $p = 0.035$
+with controls) and maximum WTA ($p = 0.009$; $p = 0.006$), family opinion remains
+negatively associated with the maximum WTA at the 1\% level, and peer opinion remains
+positive and significant ($p = 0.005$ without controls; $p = 0.027$ with controls).
+The direction, magnitude, and significance of every coefficient are effectively unchanged,
+suggesting the original results are not driven by extreme wage reports.
+
+\input{regtable_w_table.tex}
+
+%─────────────────────────────────────────────────────────────────────────────
+\section{Next Steps}
+%─────────────────────────────────────────────────────────────────────────────
+
+The associations documented here, particularly the divergent roles of social factors and
+professional development across the wage floor and ceiling, provide a useful
+starting point for designing a pilot RCT that could isolate the mechanisms at play.
+Expanding the sample and cross-tabulating wage WTA by field of study and graduation
+year are natural immediate next steps before pilot design.
+
+\end{document}
