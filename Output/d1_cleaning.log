@@ -3,7 +3,7 @@
        log:  /Users/remybeauregard/Documents/GitHub/Low-Paid-Jobs/Data/../Output/d1_cleaning
 > .log
   log type:  text
- opened on:  10 May 2026, 23:22:39
+ opened on:  11 May 2026, 12:37:44
 
 . // Open a plain-text log file that records every line of Stata output for
 . // this run. "replace" overwrites the previous log; "text" saves as .log
@@ -100,7 +100,7 @@
 . // influences the respondent's job-choice decision.
 . // Typical coding: 1 = this factor matters to me, 0 = it does not.
 . 
-. rename Z  jobfactors_salary
+. rename Z  salary_matters
 
 . rename AA jobfactors_location
 
@@ -127,17 +127,17 @@
 . // converts each variable to a proper number. "replace" overwrites the string
 . // version in place rather than creating a separate copy.
 . 
-. foreach v in jobfactors_salary jobfactors_location jobfactors_familyopinion ///
+. foreach v in salary_matters jobfactors_location jobfactors_familyopinion ///
 >              jobfactors_peeropinion jobfactors_hoursflexibility              ///
 >              jobfactors_qualifications jobfactors_promotion                  ///
 >              jobfactors_profdev jobfactors_training {
   2.     destring `v', replace
   3.     // The loop body runs once per variable name in the list.
 .     // `v' is replaced by the current name on each iteration, so Stata executes
-.     // "destring jobfactors_salary, replace", then "destring jobfactors_location,
+.     // "destring salary_matters, replace", then "destring jobfactors_location,
 .     // replace", and so on through all nine job-factor variables.
 . }
-jobfactors_salary: all characters numeric; replaced as byte
+salary_matters: all characters numeric; replaced as byte
 jobfactors_location: all characters numeric; replaced as byte
 jobfactors_familyopinion: all characters numeric; replaced as byte
 jobfactors_peeropinion: all characters numeric; replaced as byte
@@ -192,8 +192,8 @@ jobfactors_training: all characters numeric; replaced as byte
   7.     // Create a temporary working variable "_s" (capacity: 500 characters).
 .     // "lower()" converts all letters to lowercase ("GHC" → "ghc"),
 .     // "trim()" removes leading and trailing blank spaces.
-.     // Standardising case and spacing prevents mismatches caused by
-.     // inconsistent capitalisation in free-text responses.
+.     // Standardizing case and spacing prevents mismatches caused by
+.     // inconsistent capitalization in free-text responses.
 . 
 .     * Detect time unit before stripping keywords
 .     gen byte _isHour = regexm(_s, "hour")
@@ -356,7 +356,7 @@ jobfactors_training: all characters numeric; replaced as byte
 . replace graduationyear="2025" if graduationyear=="2025 (Expected)"
 (0 real changes made)
 
-. // Standardise the text "2025 (Expected)" to a plain four-digit year so that
+. // Standardize the text "2025 (Expected)" to a plain four-digit year so that
 . // destring can convert it to a number.
 . 
 . destring graduationyear, replace
@@ -402,11 +402,11 @@ age: all characters numeric; replaced as byte
 >      jobfactors_peeropinion jobfactors_hoursflexibility                      ///
 >      jobfactors_qualifications jobfactors_promotion jobfactors_profdev       ///
 >      jobfactors_training                                                      ///
->      grad_code female married child living_code // jobfactors_salary
+>      grad_code female married child living_code salary_matters
 
-. // Note: jobfactors_salary is commented out and therefore NOT retained.
-. // It is excluded from the analysis — likely because salary is mechanically
-. // related to the wage outcome variables, which would introduce circularity.
+. // Note: salary_matters is retained here for the salary diagnostic in Section 9c.
+. // It is excluded from the main regressions because regressing wage WTA on
+. // "does salary matter to you?" would be circular — both measure the same construct.
 . 
 . 
 . /* ─── SECTION 8: Drop observations with insufficient data ────────────────────── */
@@ -527,9 +527,9 @@ age: all characters numeric; replaced as byte
 >                "(0/1) indicators; their means equal the share of the sample with that " //
 > /
 >                "characteristic. " _char(36) "p_5" _char(36) " and " ///
->                _char(36) "p_{95}" _char(36) " for wage variables are the winsorisation " /
+>                _char(36) "p_{95}" _char(36) " for wage variables are the winsorization " /
 > //
->                "thresholds used in Table~\ref{tab:regsw}. Wages standardised to " ///
+>                "thresholds used in Table~\ref{tab:regsw}. Wages standardized to " ///
 >                "monthly GHC equivalents using a 40-hour, 5-day working week." _n
 
 . file write sumf "\end{tablenotes}" _n
@@ -677,7 +677,55 @@ jobfactors_ |
 
 . 
 . 
-. /* ─── SECTION 10: Winsorisation ─────────────────────────────────────────────── */
+. // ── 9c. Salary diagnostic ─────────────────────────────────────────────────────
+. // Simple OLS of each wage outcome on the salary job-factor indicator.
+. // These regressions justify excluding salary from the main models: if
+. // "salary matters" strongly predicts actual wage WTA, it is measuring the
+. // same construct as the outcome (circularity). Results reported inline in
+. // Section 4 of the report (not tabulated).
+. 
+. display "--- Salary diagnostic: min WTA ---"
+--- Salary diagnostic: min WTA ---
+
+. regress wageWTAmin_monthly salary_matters, vce(robust)
+
+Linear regression                               Number of obs     =         48
+                                                F(1, 46)          =       0.33
+                                                Prob > F          =     0.5676
+                                                R-squared         =     0.0022
+                                                Root MSE          =     1639.2
+
+--------------------------------------------------------------------------------
+               |               Robust
+wageWTAmin_m~y | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+---------------+----------------------------------------------------------------
+salary_matters |  -275.0682   477.8252    -0.58   0.568     -1236.88    686.7441
+         _cons |       2500   403.7864     6.19   0.000      1687.22     3312.78
+--------------------------------------------------------------------------------
+
+. 
+. display "--- Salary diagnostic: max WTA ---"
+--- Salary diagnostic: max WTA ---
+
+. regress wageWTAmax_monthly salary_matters, vce(robust)
+
+Linear regression                               Number of obs     =         44
+                                                F(1, 42)          =       0.17
+                                                Prob > F          =     0.6811
+                                                R-squared         =     0.0055
+                                                Root MSE          =     2670.4
+
+--------------------------------------------------------------------------------
+               |               Robust
+wageWTAmax_m~y | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+---------------+----------------------------------------------------------------
+salary_matters |  -676.4125   1634.465    -0.41   0.681    -3974.897    2622.072
+         _cons |       4875   1581.256     3.08   0.004     1683.895    8066.105
+--------------------------------------------------------------------------------
+
+. 
+. 
+. /* ─── SECTION 10: Winsorization ─────────────────────────────────────────────── */
 . // Winsorisation replaces values beyond a given percentile threshold with the
 . // value at that threshold, limiting (but not removing) extreme observations.
 . // This is applied at the 5th and 95th percentiles to address extreme reported
@@ -694,7 +742,7 @@ jobfactors_ |
   5.     gen double `v'_w = `v'
   6.     replace `v'_w = `lo' if `v'_w < `lo' & !missing(`v'_w)
   7.     replace `v'_w = `hi' if `v'_w > `hi' & !missing(`v'_w)
-  8.     la var `v'_w "`v' winsorised at 5th/95th percentile (monthly GHC)"
+  8.     la var `v'_w "`v' winsorized at 5th/95th percentile (monthly GHC)"
   9. }
 (2 real changes made)
 (2 real changes made)
@@ -765,6 +813,8 @@ jobfactors_ |
 
 . 
 . // ── Regressions: original wages ────────────────────────────────────────────────
+. // salary_matters is not a jobfactors_* variable and is excluded from all models;
+. // see Section 9c for justification.
 . 
 . reg wageWTAmin_monthly jobfactors*, robust
 
@@ -875,7 +925,7 @@ jobfactors_qualifications |   91.25123   932.6568     0.10   0.923    -1806.253 
 . estimates store m4
 
 . 
-. // ── Regressions: winsorised wages ──────────────────────────────────────────────
+. // ── Regressions: winsorized wages ─────────────────────────────────────────────
 . 
 . reg wageWTAmin_monthly_w jobfactors*, robust
 
@@ -1027,7 +1077,7 @@ jobfactors_qualifications |   108.8852   928.9297     0.12   0.907    -1781.037 
  10.     }
  11.     else {
  12.         local outfile "../Report/regtable_w_table.tex"
- 13.         local caption "OLS Regression Results: Winsorised WTA (5th/95th Percentile)"
+ 13.         local caption "OLS Regression Results: Winsorized WTA (5th/95th Percentile)"
  14.         local tlabel  "tab:regsw"
  15.         local m1_ m1w
  16.         local m2_ m2w
@@ -1164,5 +1214,5 @@ jobfactors_qualifications |   108.8852   928.9297     0.12   0.907    -1781.037 
        log:  /Users/remybeauregard/Documents/GitHub/Low-Paid-Jobs/Data/../Output/d1_cleaning
 > .log
   log type:  text
- closed on:  10 May 2026, 23:22:39
+ closed on:  11 May 2026, 12:37:44
 --------------------------------------------------------------------------------------------

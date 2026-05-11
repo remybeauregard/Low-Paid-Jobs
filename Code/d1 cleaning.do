@@ -96,7 +96,7 @@ rename V nationalservicePAY   // Monthly stipend received during national servic
 // influences the respondent's job-choice decision.
 // Typical coding: 1 = this factor matters to me, 0 = it does not.
 
-rename Z  jobfactors_salary
+rename Z  salary_matters
 rename AA jobfactors_location
 rename AB jobfactors_familyopinion   // Does family opinion influence job choice?
 rename AC jobfactors_peeropinion     // Does peer/friend opinion influence job choice?
@@ -114,14 +114,14 @@ rename AH jobfactors_training        // On-the-job training
 // converts each variable to a proper number. "replace" overwrites the string
 // version in place rather than creating a separate copy.
 
-foreach v in jobfactors_salary jobfactors_location jobfactors_familyopinion ///
+foreach v in salary_matters jobfactors_location jobfactors_familyopinion ///
              jobfactors_peeropinion jobfactors_hoursflexibility              ///
              jobfactors_qualifications jobfactors_promotion                  ///
              jobfactors_profdev jobfactors_training {
     destring `v', replace
     // The loop body runs once per variable name in the list.
     // `v' is replaced by the current name on each iteration, so Stata executes
-    // "destring jobfactors_salary, replace", then "destring jobfactors_location,
+    // "destring salary_matters, replace", then "destring jobfactors_location,
     // replace", and so on through all nine job-factor variables.
 }
 
@@ -298,10 +298,10 @@ keep graduate seekingwork acceptMW fieldofstudy graduationyear age           ///
      jobfactors_peeropinion jobfactors_hoursflexibility                      ///
      jobfactors_qualifications jobfactors_promotion jobfactors_profdev       ///
      jobfactors_training                                                      ///
-     grad_code female married child living_code // jobfactors_salary
-// Note: jobfactors_salary is commented out and therefore NOT retained.
-// It is excluded from the analysis — likely because salary is mechanically
-// related to the wage outcome variables, which would introduce circularity.
+     grad_code female married child living_code
+// salary_matters is not retained: it is excluded from all regressions because
+// regressing wage WTA on "does salary matter to you?" would be circular —
+// both measure the same underlying construct.
 
 
 /* ─── SECTION 8: Drop observations with insufficient data ────────────────────── */
@@ -503,6 +503,8 @@ local lab_jobfactors_training         "Training"
 local regvars "jobfactors_profdev jobfactors_familyopinion jobfactors_peeropinion jobfactors_location jobfactors_hoursflexibility jobfactors_qualifications jobfactors_promotion jobfactors_training"
 
 // ── Regressions: original wages ────────────────────────────────────────────────
+// salary_matters is not a jobfactors_* variable and is excluded from all models;
+// see Section 9c for justification.
 
 reg wageWTAmin_monthly jobfactors*, robust
 estimates store m1
@@ -517,7 +519,7 @@ estimates store m3
 reg wageWTAmax_monthly age female jobfactors*, robust
 estimates store m4
 
-// ── Regressions: winsorised wages ──────────────────────────────────────────────
+// ── Regressions: winsorized wages ─────────────────────────────────────────────
 
 reg wageWTAmin_monthly_w jobfactors*, robust
 estimates store m1w
