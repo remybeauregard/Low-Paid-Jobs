@@ -3,7 +3,7 @@
        log:  /Users/remybeauregard/Documents/GitHub/Low-Paid-Jobs/Data/../Output/d1_cleaning
 > .log
   log type:  text
- opened on:  10 May 2026, 17:08:25
+ opened on:  10 May 2026, 19:25:29
 
 . // Open a plain-text log file that records every line of Stata output for
 . // this run. "replace" overwrites the previous log; "text" saves as .log
@@ -1033,7 +1033,7 @@ jobfactors_qualifications |   108.8852   928.9297     0.12   0.907    -1781.037 
  10.     }
  11.     else {
  12.         local outfile "../Report/regtable_w_table.tex"
- 13.         local caption "OLS Regression Results: Winsorised Wages (5th/95th Percentile)"
+ 13.         local caption "OLS Regression Results: Winsorised WTA (5th/95th Percentile)"
  14.         local tlabel  "tab:regsw"
  15.         local m1_ m1w
  16.         local m2_ m2w
@@ -1081,82 +1081,87 @@ jobfactors_qualifications |   108.8852   928.9297     0.12   0.907    -1781.037 
 .     file open tf using "`outfile'", write replace
  50.     file write tf "\begin{table}[h!]" _n
  51.     file write tf "\centering" _n
- 52.     file write tf "\caption{`caption'}" _n
- 53.     file write tf "\label{`tlabel'}" _n
- 54.     file write tf "\begin{tabular}{l*{4}{>{\centering\arraybackslash}p{1.6cm}}}" _n
- 55.     file write tf "\toprule" _n
- 56.     file write tf " & \multicolumn{2}{c}{\textbf{Min WTA}} & \multicolumn{2}{c}{\textbf
+ 52.     file write tf "\begin{threeparttable}" _n
+ 53.     file write tf "\caption{`caption'}" _n
+ 54.     file write tf "\label{`tlabel'}" _n
+ 55.     file write tf "\begin{tabular}{l*{4}{>{\centering\arraybackslash}p{1.6cm}}}" _n
+ 56.     file write tf "\toprule" _n
+ 57.     file write tf " & \multicolumn{2}{c}{\textbf{Min WTA}} & \multicolumn{2}{c}{\textbf
 > {Max WTA}} \\" _n
- 57.     file write tf "\cmidrule(lr){2-3}\cmidrule(lr){4-5}" _n
- 58.     file write tf "\textbf{Job factor} & (1) & (2) & (3) & (4) \\" _n
- 59.     file write tf "\midrule" _n
- 60.     file write tf "\multicolumn{5}{l}{\textit{Significant predictors}} \\[2pt]" _n
- 61. 
+ 58.     file write tf "\cmidrule(lr){2-3}\cmidrule(lr){4-5}" _n
+ 59.     file write tf "\textbf{Job factor} & (1) & (2) & (3) & (4) \\" _n
+ 60.     file write tf "\midrule" _n
+ 61.     file write tf "\multicolumn{5}{l}{\textit{Significant predictors}} \\[2pt]" _n
+ 62. 
 .     // Write each row cell-by-cell. _char(36) writes a literal $ to produce
 .     // $+$*** / $-$*** formatting (math-mode sign + superscript stars).
 . 
 .     local n_sig : word count `sig_idx'
- 62.     local k = 0
- 63.     foreach i of local sig_idx {
- 64.         local k = `k' + 1
- 65.         local v = "`var`i''"
- 66.         local lab "`lab_`v''"
- 67.         file write tf "`lab'"
- 68.         forvalues j = 1/4 {
- 69.             file write tf " & "
- 70.             if "`c_`i'_`j''" == "ns" {
- 71.                 file write tf "ns"
- 72.             }
- 73.             else {
- 74.                 local sg = substr("`c_`i'_`j''", 1, 1)
- 75.                 local st = substr("`c_`i'_`j''", 2, .)
- 76.                 file write tf _char(36) "`sg'" _char(36) "`st'"
- 77.             }
- 78.         }
- 79.         if `k' == `n_sig' {
- 80.             file write tf " \\[4pt]" _n
- 81.         }
- 82.         else {
- 83.             file write tf " \\" _n
- 84.         }
- 85.     }
- 86. 
+ 63.     local k = 0
+ 64.     foreach i of local sig_idx {
+ 65.         local k = `k' + 1
+ 66.         local v = "`var`i''"
+ 67.         local lab "`lab_`v''"
+ 68.         file write tf "`lab'"
+ 69.         forvalues j = 1/4 {
+ 70.             file write tf " & "
+ 71.             if "`c_`i'_`j''" == "ns" {
+ 72.                 file write tf "ns"
+ 73.             }
+ 74.             else {
+ 75.                 local sg = substr("`c_`i'_`j''", 1, 1)
+ 76.                 local st = substr("`c_`i'_`j''", 2, .)
+ 77.                 file write tf _char(36) "`sg'" _char(36) "`st'"
+ 78.             }
+ 79.         }
+ 80.         if `k' == `n_sig' {
+ 81.             file write tf " \\[4pt]" _n
+ 82.         }
+ 83.         else {
+ 84.             file write tf " \\" _n
+ 85.         }
+ 86.     }
+ 87. 
 .     if "`nonsig_idx'" != "" {
- 87.         file write tf "\multicolumn{5}{l}{\textit{Non-significant predictors}} \\[2pt]"
+ 88.         file write tf "\multicolumn{5}{l}{\textit{Non-significant predictors}} \\[2pt]"
 >  _n
- 88.         foreach i of local nonsig_idx {
- 89.             local v = "`var`i''"
- 90.             local lab "`lab_`v''"
- 91.             file write tf "`lab'"
- 92.             forvalues j = 1/4 {
- 93.                 file write tf " & "
- 94.                 if "`c_`i'_`j''" == "ns" {
- 95.                     file write tf "ns"
- 96.                 }
- 97.                 else {
- 98.                     local sg = substr("`c_`i'_`j''", 1, 1)
- 99.                     local st = substr("`c_`i'_`j''", 2, .)
-100.                     file write tf _char(36) "`sg'" _char(36) "`st'"
-101.                 }
-102.             }
-103.             file write tf " \\" _n
-104.         }
-105.     }
-106. 
+ 89.         foreach i of local nonsig_idx {
+ 90.             local v = "`var`i''"
+ 91.             local lab "`lab_`v''"
+ 92.             file write tf "`lab'"
+ 93.             forvalues j = 1/4 {
+ 94.                 file write tf " & "
+ 95.                 if "`c_`i'_`j''" == "ns" {
+ 96.                     file write tf "ns"
+ 97.                 }
+ 98.                 else {
+ 99.                     local sg = substr("`c_`i'_`j''", 1, 1)
+100.                     local st = substr("`c_`i'_`j''", 2, .)
+101.                     file write tf _char(36) "`sg'" _char(36) "`st'"
+102.                 }
+103.             }
+104.             file write tf " \\" _n
+105.         }
+106.     }
+107. 
 .     file write tf "\midrule" _n
-107.     file write tf "Controls (age, female) & & \checkmark & & \checkmark \\" _n
-108.     file write tf _char(36) "N" _char(36) " & `N_1' & `N_2' & `N_3' & `N_4' \\" _n
-109.     file write tf "\bottomrule" _n
-110.     file write tf "\multicolumn{5}{l}{\footnotesize \textit{Note:} " _char(36) "+" _cha
-> r(36) " / " _char(36) "-" _char(36) " indicates direction; ns = not significant.}\\" _n
-111.     file write tf "\multicolumn{5}{l}{\footnotesize *** " _char(36) "p" _char(36) "<0.0
-> 1, ** " _char(36) "p" _char(36) "<0.05 (robust standard errors).}\\" _n
-112.     file write tf "\multicolumn{5}{l}{\footnotesize Salary excluded from all models (se
-> e Section~\ref{sec:notes}).}\\" _n
-113.     file write tf "\end{tabular}" _n
-114.     file write tf "\end{table}" _n
-115.     file close tf
-116. 
+108.     file write tf "Controls (age, female) & & \checkmark & & \checkmark \\" _n
+109.     file write tf _char(36) "N" _char(36) " & `N_1' & `N_2' & `N_3' & `N_4' \\" _n
+110.     file write tf "\bottomrule" _n
+111.     file write tf "\end{tabular}" _n
+112.     file write tf "\begin{tablenotes}[flushleft]" _n
+113.     file write tf "\footnotesize" _n
+114.     file write tf "\item \textit{Note:} " _char(36) "+" _char(36) " / " ///
+>                   _char(36) "-" _char(36) " indicates coefficient direction; ns = not sign
+> ificant. *** " ///
+>                   _char(36) "p" _char(36) "<0.01, ** " _char(36) "p" _char(36) ///
+>                   "<0.05 (robust standard errors). Salary excluded from all models" ///
+>                   " (see Section~\ref{sec:notes})." _n
+115.     file write tf "\end{tablenotes}" _n
+116.     file write tf "\end{threeparttable}" _n
+117.     file write tf "\end{table}" _n
+118.     file close tf
+119. 
 . }
 
 . 
@@ -1165,5 +1170,5 @@ jobfactors_qualifications |   108.8852   928.9297     0.12   0.907    -1781.037 
        log:  /Users/remybeauregard/Documents/GitHub/Low-Paid-Jobs/Data/../Output/d1_cleaning
 > .log
   log type:  text
- closed on:  10 May 2026, 17:08:25
+ closed on:  10 May 2026, 19:25:29
 --------------------------------------------------------------------------------------------
